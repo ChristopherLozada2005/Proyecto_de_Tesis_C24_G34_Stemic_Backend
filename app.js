@@ -88,7 +88,7 @@ const startServer = async () => {
       console.log(`🚀 Servidor iniciado en puerto ${PORT}`);
       console.log(`📱 API: http://localhost:${PORT}`);
       console.log(`🔐 Auth: http://localhost:${PORT}/api/auth`);
-      console.log(`🔐 Auth: http://localhost:${PORT}/api/docs`);
+      console.log(`Swaggwer: http://localhost:${PORT}/api/docs`);
     });
   } catch (error) {
     console.error('❌ Error al iniciar:', error);
