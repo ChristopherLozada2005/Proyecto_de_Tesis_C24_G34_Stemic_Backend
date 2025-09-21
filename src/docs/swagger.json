@@ -6,6 +6,64 @@
     "description": "Documentación de la API STEMIC"
   },
   "paths": {
+    "/api/auth/forgot-password": {
+      "post": {
+        "summary": "Solicitar recuperación de contraseña",
+        "tags": ["Auth"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "correo": { "type": "string", "format": "email" }
+                },
+                "required": ["correo"]
+              },
+              "example": {
+                "correo": "usuario@ejemplo.com"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Si el correo existe, se envió un email con instrucciones" },
+          "400": { "description": "Correo requerido" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
+    },
+    "/api/auth/reset-password": {
+      "post": {
+        "summary": "Restablecer contraseña usando token",
+        "tags": ["Auth"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": { "type": "string" },
+                  "password": { "type": "string", "format": "password" }
+                },
+                "required": ["token", "password"]
+              },
+              "example": {
+                "token": "token_recibido_por_email",
+                "password": "NuevaPassword123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Contraseña restablecida correctamente" },
+          "400": { "description": "Token inválido, expirado o contraseña insegura" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
+    },
     "/api/auth/register": {
       "post": {
         "summary": "Registrar un nuevo usuario",
