@@ -19,14 +19,16 @@
                 "properties": {
                   "nombre": { "type": "string" },
                   "correo": { "type": "string", "format": "email" },
-                  "password": { "type": "string", "format": "password" }
+                  "password": { "type": "string", "format": "password" },
+                  "confirmPassword": { "type": "string", "format": "password" }
                 },
                 "required": ["nombre", "correo", "password"]
               },
               "example": {
                 "nombre": "Juan Perez",
                 "correo": "juan@mail.com",
-                "password": "12345678"
+                "password": "ABcd1234",
+                "confirmPassword": "ABcd1234"
               }
             }
           }
@@ -56,7 +58,7 @@
               },
               "example": {
                 "correo": "juan@mail.com",
-                "password": "12345678"
+                "password": "ABcd1234"
               }
             }
           }
