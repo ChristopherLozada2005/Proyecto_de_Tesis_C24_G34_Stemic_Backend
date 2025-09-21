@@ -1,5 +1,5 @@
 const User = require('../models/User');
-const { generateToken } = require('../middleware/auth');
+const { generateTokens } = require('../middleware/auth');
 const { OAuth2Client } = require('google-auth-library');
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -23,14 +23,14 @@ class AuthController {
       const newUser = await User.create({ nombre, correo, password });
 
       // Generar token
-      const token = generateToken(newUser.id);
+  const { accessToken } = await generateTokens(newUser.id);
 
       res.status(201).json({
         success: true,
         message: 'Usuario registrado exitosamente',
         data: {
           user: newUser.toJSON(),
-          token,
+          token: accessToken,
           tokenType: 'Bearer'
         }
       });
@@ -76,14 +76,14 @@ class AuthController {
       }
 
       // Generar token
-      const token = generateToken(user.id);
+  const { accessToken } = await generateTokens(user.id);
 
       res.json({
         success: true,
         message: 'Inicio de sesión exitoso',
         data: {
           user: user.toJSON(),
-          token,
+          token: accessToken,
           tokenType: 'Bearer'
         }
       });
@@ -136,14 +136,14 @@ class AuthController {
       }
 
       // Generar token JWT
-      const jwtToken = generateToken(user.id);
+  const { accessToken } = await generateTokens(user.id);
 
       res.json({
         success: true,
         message: 'Autenticación exitosa',
         data: {
           user: user.toJSON(),
-          token: jwtToken,
+          token: accessToken,
           tokenType: 'Bearer'
         }
       });
@@ -203,12 +203,11 @@ class AuthController {
   // Refresh Token
   static async refreshAccessToken(req, res) {
     try {
-      const token = generateToken(req.user.id);
-      
+      const { accessToken } = await generateTokens(req.user.id);
       res.json({
         success: true,
         data: {
-          token,
+          token: accessToken,
           tokenType: 'Bearer'
         }
       });

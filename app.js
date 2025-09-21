@@ -2,6 +2,10 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
+// Swagger
+const swaggerUi = require('swagger-ui-express');
+const swaggerDocument = require('./src/docs/swagger.json');
+
 // Importar configuración de base de datos
 const { testConnection } = require('./src/config/database');
 
@@ -27,8 +31,12 @@ app.use((req, res, next) => {
   next();
 });
 
+
 // Rutas
 app.use('/api/auth', authRoutes);
+
+// Documentación Swagger
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Ruta de prueba
 app.get('/', (req, res) => {
