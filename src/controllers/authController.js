@@ -59,7 +59,7 @@ class AuthController {
       }
 
       // Verificar que no sea de Google
-      if (!user.password_hash) {
+      if (!user.password) {
         return res.status(401).json({
           success: false,
           message: 'Esta cuenta fue creada con Google'
@@ -177,6 +177,43 @@ class AuthController {
 
     } catch (error) {
       console.error('Error en getProfile:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor'
+      });
+    }
+  }
+
+  // Logout
+  static async logout(req, res) {
+    try {
+      res.json({
+        success: true,
+        message: 'Sesión cerrada exitosamente'
+      });
+    } catch (error) {
+      console.error('Error en logout:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor'
+      });
+    }
+  }
+
+  // Refresh Token
+  static async refreshAccessToken(req, res) {
+    try {
+      const token = generateToken(req.user.id);
+      
+      res.json({
+        success: true,
+        data: {
+          token,
+          tokenType: 'Bearer'
+        }
+      });
+    } catch (error) {
+      console.error('Error en refreshAccessToken:', error);
       res.status(500).json({
         success: false,
         message: 'Error interno del servidor'

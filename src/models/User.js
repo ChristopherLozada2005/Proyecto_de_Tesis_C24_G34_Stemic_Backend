@@ -6,7 +6,7 @@ class User {
     this.id = userData.id;
     this.nombre = userData.nombre;
     this.correo = userData.correo;
-    this.password_hash = userData.password_hash;
+    this.password = userData.password;
     this.google_id = userData.google_id;
     this.avatar_url = userData.avatar_url;
     this.rol = userData.rol;
@@ -20,9 +20,16 @@ class User {
       const passwordHash = await bcrypt.hash(password, 12);
       
       const result = await query(
-        `INSERT INTO users (nombre, correo, password_hash, rol) 
-         VALUES ($1, $2, $3, $4) 
-         RETURNING *`,
+        `INSERT INTO users (
+          nombre, 
+          correo, 
+          password, 
+          rol,
+          created_at,
+          updated_at
+        ) 
+        VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) 
+        RETURNING *`,
         [nombre, correo, passwordHash, rol]
       );
       
@@ -39,9 +46,17 @@ class User {
   static async createWithGoogle({ nombre, correo, google_id, avatar_url }) {
     try {
       const result = await query(
-        `INSERT INTO users (nombre, correo, google_id, avatar_url) 
-         VALUES ($1, $2, $3, $4) 
-         RETURNING *`,
+        `INSERT INTO users (
+          nombre, 
+          correo, 
+          google_id, 
+          avatar_url,
+          rol,
+          created_at,
+          updated_at
+        ) 
+        VALUES ($1, $2, $3, $4, 'usuario', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) 
+        RETURNING *`,
         [nombre, correo, google_id, avatar_url]
       );
       
@@ -86,8 +101,8 @@ class User {
 
   // Verificar password
   async verifyPassword(password) {
-    if (!this.password_hash) return false;
-    return await bcrypt.compare(password, this.password_hash);
+    if (!this.password) return false;
+    return await bcrypt.compare(password, this.password);
   }
 
   // Datos públicos
