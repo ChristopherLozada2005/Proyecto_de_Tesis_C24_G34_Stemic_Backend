@@ -1,3 +1,5 @@
+const crypto = require('crypto');
+const { sendPasswordResetEmail } = require('../utils/mailer');
 const User = require('../models/User');
 const { generateTokens } = require('../middleware/auth');
 const { OAuth2Client } = require('google-auth-library');
@@ -5,6 +7,31 @@ const { OAuth2Client } = require('google-auth-library');
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 class AuthController {
+  // Solicitud de recuperación de contraseña
+  static async forgotPassword(req, res) {
+    try {
+      const { correo } = req.body;
+      if (!correo) {
+        return res.status(400).json({ success: false, message: 'Correo requerido' });
+      }
+      const user = await User.findByEmail(correo);
+      if (!user) {
+        // Por seguridad, responder igual aunque no exista
+        return res.status(200).json({ success: true, message: 'Si el correo existe, se envió un email con instrucciones' });
+      }
+      // Generar token seguro y expiración (1 hora)
+      const token = crypto.randomBytes(32).toString('hex');
+      const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
+      await User.setPasswordResetToken(user.id, token, expires);
+      // Enviar email
+      const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:3001'}/reset-password?token=${token}`;
+      await sendPasswordResetEmail(user.correo, resetLink);
+      return res.status(200).json({ success: true, message: 'Si el correo existe, se envió un email con instrucciones' });
+    } catch (error) {
+      console.error('Error en forgotPassword:', error);
+      res.status(500).json({ success: false, message: 'Error interno del servidor' });
+    }
+  }
   // Registro manual
   static async register(req, res) {
     try {

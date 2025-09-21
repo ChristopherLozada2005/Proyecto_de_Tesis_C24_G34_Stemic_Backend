@@ -12,6 +12,25 @@ class User {
     this.rol = userData.rol;
     this.created_at = userData.created_at;
     this.updated_at = userData.updated_at;
+    this.password_reset_token = userData.password_reset_token;
+    this.password_reset_expires = userData.password_reset_expires;
+  }
+
+  // Guardar token de recuperación y expiración
+  static async setPasswordResetToken(userId, token, expires) {
+    await query(
+      'UPDATE users SET password_reset_token = $1, password_reset_expires = $2 WHERE id = $3',
+      [token, expires, userId]
+    );
+  }
+
+  // Buscar usuario por token de recuperación
+  static async findByPasswordResetToken(token) {
+    const result = await query(
+      'SELECT * FROM users WHERE password_reset_token = $1 AND password_reset_expires > NOW()',
+      [token]
+    );
+    return result.rows.length > 0 ? new User(result.rows[0]) : null;
   }
 
   // Crear usuario con email y password
