@@ -7,6 +7,31 @@ const { OAuth2Client } = require('google-auth-library');
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 class AuthController {
+  // Restablecer contraseña usando token
+  static async resetPassword(req, res) {
+    try {
+      const { token, password } = req.body;
+      if (!token || !password) {
+        return res.status(400).json({ success: false, message: 'Token y nueva contraseña requeridos' });
+      }
+      // Buscar usuario por token válido
+      const user = await User.findByPasswordResetToken(token);
+      if (!user) {
+        return res.status(400).json({ success: false, message: 'Token inválido o expirado' });
+      }
+      // Validar seguridad de la contraseña (puedes usar tu validador existente)
+      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/;
+      if (!passwordRegex.test(password)) {
+        return res.status(400).json({ success: false, message: 'La contraseña debe tener al menos 8 caracteres, incluir mayúscula, minúscula y número' });
+      }
+      // Hashear y guardar nueva contraseña, limpiar token
+      await User.updatePasswordAndClearToken(user.id, password);
+      return res.status(200).json({ success: true, message: 'Contraseña restablecida correctamente' });
+    } catch (error) {
+      console.error('Error en resetPassword:', error);
+      res.status(500).json({ success: false, message: 'Error interno del servidor' });
+    }
+  }
   // Solicitud de recuperación de contraseña
   static async forgotPassword(req, res) {
     try {

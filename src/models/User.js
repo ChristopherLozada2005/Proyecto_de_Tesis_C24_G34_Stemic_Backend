@@ -2,6 +2,14 @@ const { query } = require('../config/database');
 const bcrypt = require('bcrypt');
 
 class User {
+  // Actualizar contraseña y limpiar token
+  static async updatePasswordAndClearToken(userId, newPassword) {
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await query(
+      'UPDATE users SET password = $1, password_reset_token = NULL, password_reset_expires = NULL WHERE id = $2',
+      [passwordHash, userId]
+    );
+  }
   constructor(userData) {
     this.id = userData.id;
     this.nombre = userData.nombre;

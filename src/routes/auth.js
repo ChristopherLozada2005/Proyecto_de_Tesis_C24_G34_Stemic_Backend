@@ -11,6 +11,7 @@ router.post('/google', validateGoogleToken, AuthController.googleAuth);
 router.post('/refresh-token', AuthController.refreshAccessToken);
 router.post('/logout', AuthController.logout);
 router.post('/forgot-password', AuthController.forgotPassword);
+router.post('/reset-password', AuthController.resetPassword);
 
 // Rutas protegidas
 router.get('/profile', authenticateToken, AuthController.getProfile);
