@@ -11,6 +11,7 @@ const { testConnection } = require('./src/config/database');
 
 // Importar rutas
 const authRoutes = require('./src/routes/auth');
+const eventRoutes = require('./src/routes/events');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,8 +23,11 @@ app.use(cors({
 }));
 
 // Middleware para parsing de JSON
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Middleware para servir archivos estáticos (imágenes de eventos)
+app.use('/uploads', express.static('uploads'));
 
 // Logging básico
 app.use((req, res, next) => {
@@ -34,6 +38,7 @@ app.use((req, res, next) => {
 
 // Rutas
 app.use('/api/auth', authRoutes);
+app.use('/api/events', eventRoutes);
 
 // Documentación Swagger
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
@@ -44,10 +49,18 @@ app.get('/', (req, res) => {
     success: true,
     message: 'API STEMIC funcionando',
     endpoints: {
-      register: 'POST /api/auth/register',
-      login: 'POST /api/auth/login',
-      google: 'POST /api/auth/google',
-      profile: 'GET /api/auth/profile'
+      auth: {
+        register: 'POST /api/auth/register',
+        login: 'POST /api/auth/login',
+        google: 'POST /api/auth/google',
+        profile: 'GET /api/auth/profile'
+      },
+      events: {
+        public: 'GET /api/events/public',
+        create: 'POST /api/events',
+        my_events: 'GET /api/events/user/my-events',
+        options: 'GET /api/events/options'
+      }
     }
   });
 });
@@ -88,7 +101,9 @@ const startServer = async () => {
       console.log(`🚀 Servidor iniciado en puerto ${PORT}`);
       console.log(`📱 API: http://localhost:${PORT}`);
       console.log(`🔐 Auth: http://localhost:${PORT}/api/auth`);
-      console.log(`Swaggwer: http://localhost:${PORT}/api/docs`);
+      console.log(`🎯 Events: http://localhost:${PORT}/api/events`);
+      console.log(`📁 Uploads: http://localhost:${PORT}/uploads`);
+      console.log(`📚 Swagger: http://localhost:${PORT}/api/docs`);
     });
   } catch (error) {
     console.error('❌ Error al iniciar:', error);

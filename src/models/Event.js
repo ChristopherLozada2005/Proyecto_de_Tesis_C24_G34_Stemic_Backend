@@ -1,0 +1,414 @@
+const { query, getClient } = require('../config/database');
+
+class Event {
+  constructor(eventData) {
+    this.id = eventData.id;
+    this.titulo = eventData.titulo;
+    this.descripcion = eventData.descripcion;
+    this.fecha_aplicacion_prioritaria = eventData.fecha_aplicacion_prioritaria;
+    this.fecha_aplicacion_general = eventData.fecha_aplicacion_general;
+    this.duracion = eventData.duracion;
+    this.correo_contacto = eventData.correo_contacto;
+    this.informacion_adicional = eventData.informacion_adicional;
+    // Skills y tags son arrays
+    this.skills = Array.isArray(eventData.skills) ? eventData.skills : [];
+    this.tags = Array.isArray(eventData.tags) ? eventData.tags : [];
+    this.modalidad = eventData.modalidad;
+    this.lugar = eventData.lugar;
+    this.fecha_hora = eventData.fecha_hora;
+    this.imagen_url = eventData.imagen_url;
+    this.requiere_postulacion = eventData.requiere_postulacion || false;
+    this.activo = eventData.activo !== undefined ? eventData.activo : true;
+    this.created_by = eventData.created_by;
+    this.created_at = eventData.created_at;
+    this.updated_at = eventData.updated_at;
+  }
+
+  // Crear un nuevo evento
+  static async create(eventData) {
+    const {
+      titulo,
+      descripcion,
+      fecha_aplicacion_prioritaria,
+      fecha_aplicacion_general,
+      duracion,
+      correo_contacto,
+      informacion_adicional,
+      skills,
+      tags,
+      modalidad,
+      lugar,
+      fecha_hora,
+      imagen_url,
+      requiere_postulacion = false,
+      created_by
+    } = eventData;
+
+    // Validar que la modalidad presencial o híbrida tenga lugar
+    if ((modalidad === 'presencial' || modalidad === 'hibrido') && !lugar) {
+      throw new Error('El lugar es requerido para eventos presenciales e híbridos');
+    }
+
+    const queryText = `
+      INSERT INTO eventos (
+        titulo, descripcion, fecha_aplicacion_prioritaria, fecha_aplicacion_general,
+        duracion, correo_contacto, informacion_adicional, skills, tags,
+        modalidad, lugar, fecha_hora, imagen_url, requiere_postulacion, created_by
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::skill_evento[], $9::tag_evento[], $10, $11, $12, $13, $14, $15)
+      RETURNING *
+    `;
+
+    // Skills y tags son arrays
+    const skillsArray = Array.isArray(skills) ? skills : [];
+    const tagsArray = Array.isArray(tags) ? tags : [];
+
+    const values = [
+      titulo,
+      descripcion,
+      fecha_aplicacion_prioritaria,
+      fecha_aplicacion_general,
+      duracion,
+      correo_contacto,
+      informacion_adicional,
+      skillsArray,
+      tagsArray,
+      modalidad,
+      lugar,
+      fecha_hora,
+      imagen_url,
+      requiere_postulacion,
+      created_by
+    ];
+
+    const result = await query(queryText, values);
+    return new Event(result.rows[0]);
+  }
+
+  // Obtener todos los eventos con filtros opcionales
+  static async findAll(filters = {}) {
+    let queryText = `
+      SELECT e.*, u.nombre as created_by_name
+      FROM eventos e
+      LEFT JOIN users u ON e.created_by = u.id
+      WHERE e.activo = true
+    `;
+    const values = [];
+    let paramCounter = 1;
+
+    // Aplicar filtros
+    if (filters.modalidad) {
+      queryText += ` AND e.modalidad = $${paramCounter}`;
+      values.push(filters.modalidad);
+      paramCounter++;
+    }
+
+    if (filters.skills && filters.skills.length > 0) {
+      queryText += ` AND e.skills && $${paramCounter}::skill_evento[]`;
+      values.push(filters.skills);
+      paramCounter++;
+    }
+
+    if (filters.tags && filters.tags.length > 0) {
+      queryText += ` AND e.tags && $${paramCounter}::tag_evento[]`;
+      values.push(filters.tags);
+      paramCounter++;
+    }
+
+    if (filters.fecha_desde) {
+      queryText += ` AND e.fecha_hora >= $${paramCounter}`;
+      values.push(filters.fecha_desde);
+      paramCounter++;
+    }
+
+    if (filters.fecha_hasta) {
+      queryText += ` AND e.fecha_hora <= $${paramCounter}`;
+      values.push(filters.fecha_hasta);
+      paramCounter++;
+    }
+
+    if (filters.requiere_postulacion !== undefined) {
+      queryText += ` AND e.requiere_postulacion = $${paramCounter}`;
+      values.push(filters.requiere_postulacion);
+      paramCounter++;
+    }
+
+    if (filters.search) {
+      queryText += ` AND (
+        e.titulo ILIKE $${paramCounter} OR 
+        e.descripcion ILIKE $${paramCounter} OR
+        e.informacion_adicional ILIKE $${paramCounter}
+      )`;
+      values.push(`%${filters.search}%`);
+      paramCounter++;
+    }
+
+    // Ordenar por fecha del evento
+    queryText += ` ORDER BY e.fecha_hora ASC`;
+
+    // Paginación
+    if (filters.limit) {
+      queryText += ` LIMIT $${paramCounter}`;
+      values.push(filters.limit);
+      paramCounter++;
+    }
+
+    if (filters.offset) {
+      queryText += ` OFFSET $${paramCounter}`;
+      values.push(filters.offset);
+      paramCounter++;
+    }
+
+    const result = await query(queryText, values);
+    return result.rows.map(row => new Event(row));
+  }
+
+  // Obtener evento por ID
+  static async findById(id) {
+    const queryText = `
+      SELECT e.*, u.nombre as created_by_name
+      FROM eventos e
+      LEFT JOIN users u ON e.created_by = u.id
+      WHERE e.id = $1 AND e.activo = true
+    `;
+    const result = await query(queryText, [id]);
+    
+    if (result.rows.length === 0) {
+      return null;
+    }
+    
+    return new Event(result.rows[0]);
+  }
+
+  // Obtener eventos creados por un usuario específico
+  static async findByCreator(userId, filters = {}) {
+    let queryText = `
+      SELECT e.*, u.nombre as created_by_name
+      FROM eventos e
+      LEFT JOIN users u ON e.created_by = u.id
+      WHERE e.created_by = $1
+    `;
+    const values = [userId];
+    let paramCounter = 2;
+
+    // Incluir eventos inactivos si se especifica
+    if (!filters.includeInactive) {
+      queryText += ` AND e.activo = true`;
+    }
+
+    queryText += ` ORDER BY e.created_at DESC`;
+
+    const result = await query(queryText, values);
+    return result.rows.map(row => new Event(row));
+  }
+
+  // Actualizar evento
+  static async update(id, eventData, userId) {
+    // Primero verificar que el evento existe y el usuario tiene permisos
+    const existingEvent = await Event.findById(id);
+    if (!existingEvent) {
+      throw new Error('Evento no encontrado');
+    }
+
+    if (existingEvent.created_by !== userId) {
+      throw new Error('No tienes permisos para actualizar este evento');
+    }
+
+    const updateFields = [];
+    const values = [];
+    let paramCounter = 1;
+
+    // Construir query dinámicamente basado en campos proporcionados
+    const allowedFields = [
+      'titulo', 'descripcion', 'fecha_aplicacion_prioritaria', 'fecha_aplicacion_general',
+      'duracion', 'correo_contacto', 'informacion_adicional', 'skills', 'tags',
+      'modalidad', 'lugar', 'fecha_hora', 'imagen_url', 'requiere_postulacion'
+    ];
+
+    for (const field of allowedFields) {
+      if (eventData[field] !== undefined) {
+        if (field === 'skills') {
+          updateFields.push(`skills = $${paramCounter}::skill_evento[]`);
+        } else if (field === 'tags') {
+          updateFields.push(`tags = $${paramCounter}::tag_evento[]`);
+        } else {
+          updateFields.push(`${field} = $${paramCounter}`);
+        }
+        values.push(eventData[field]);
+        paramCounter++;
+      }
+    }
+
+    if (updateFields.length === 0) {
+      throw new Error('No hay campos válidos para actualizar');
+    }
+
+    // Validar modalidad y lugar
+    if ((eventData.modalidad === 'presencial' || eventData.modalidad === 'hibrido') && 
+        !eventData.lugar && !existingEvent.lugar) {
+      throw new Error('El lugar es requerido para eventos presenciales e híbridos');
+    }
+
+    values.push(id); // Para el WHERE clause
+    
+    const queryText = `
+      UPDATE eventos 
+      SET ${updateFields.join(', ')}
+      WHERE id = $${paramCounter} AND activo = true
+      RETURNING *
+    `;
+
+    const result = await query(queryText, values);
+    
+    if (result.rows.length === 0) {
+      throw new Error('Evento no encontrado o no autorizado');
+    }
+
+    return new Event(result.rows[0]);
+  }
+
+  // Eliminar evento (soft delete)
+  static async delete(id, userId) {
+    const existingEvent = await Event.findById(id);
+    if (!existingEvent) {
+      throw new Error('Evento no encontrado');
+    }
+
+    if (existingEvent.created_by !== userId) {
+      throw new Error('No tienes permisos para eliminar este evento');
+    }
+
+    const queryText = `
+      UPDATE eventos 
+      SET activo = false 
+      WHERE id = $1 AND created_by = $2
+      RETURNING id
+    `;
+
+    const result = await query(queryText, [id, userId]);
+    
+    if (result.rows.length === 0) {
+      throw new Error('Evento no encontrado o no autorizado');
+    }
+
+    return { id: result.rows[0].id, deleted: true };
+  }
+
+  // Obtener estadísticas de eventos
+  static async getStats(userId = null) {
+    let queryText = `
+      SELECT 
+        COUNT(*) as total_eventos,
+        COUNT(CASE WHEN modalidad = 'virtual' THEN 1 END) as virtuales,
+        COUNT(CASE WHEN modalidad = 'presencial' THEN 1 END) as presenciales,
+        COUNT(CASE WHEN modalidad = 'hibrido' THEN 1 END) as hibridos,
+        COUNT(CASE WHEN requiere_postulacion = true THEN 1 END) as con_postulacion,
+        COUNT(CASE WHEN fecha_hora > NOW() THEN 1 END) as futuros,
+        COUNT(CASE WHEN fecha_hora <= NOW() THEN 1 END) as pasados
+      FROM eventos 
+      WHERE activo = true
+    `;
+
+    const values = [];
+    if (userId) {
+      queryText += ` AND created_by = $1`;
+      values.push(userId);
+    }
+
+    const result = await query(queryText, values);
+    return result.rows[0];
+  }
+
+  // Obtener próximos eventos (para dashboard)
+  static async getUpcomingEvents(limit = 5) {
+    const queryText = `
+      SELECT e.*, u.nombre as created_by_name
+      FROM eventos e
+      LEFT JOIN users u ON e.created_by = u.id
+      WHERE e.activo = true AND e.fecha_hora > NOW()
+      ORDER BY e.fecha_hora ASC
+      LIMIT $1
+    `;
+
+    const result = await query(queryText, [limit]);
+    return result.rows.map(row => new Event(row));
+  }
+
+  // Verificar si un usuario puede editar el evento
+  canEdit(userId) {
+    return this.created_by === userId;
+  }
+
+  // Skills ahora se almacenan sin conversión, retornar tal como están
+  _convertSkillsToDisplayValues(skills) {
+    // Verificar que skills sea un array válido
+    if (!skills || !Array.isArray(skills)) {
+      return [];
+    }
+    
+    return skills;
+  }
+
+  _convertTagsToDisplayValues(tags) {
+    const tagsMapping = {
+      'ia': 'IA',
+      'tech': 'TECH',
+      'networking': 'NETWORKING'
+    };
+    
+    // Verificar que tags sea un array válido
+    if (!tags || !Array.isArray(tags)) {
+      return [];
+    }
+    
+    return tags.map(tag => tagsMapping[tag] || tag);
+  }
+
+  // Método para convertir a JSON (excluyendo campos sensibles)
+  toJSON() {
+    return {
+      id: this.id,
+      titulo: this.titulo,
+      descripcion: this.descripcion,
+      fecha_aplicacion_prioritaria: this.fecha_aplicacion_prioritaria,
+      fecha_aplicacion_general: this.fecha_aplicacion_general,
+      duracion: this.duracion,
+      correo_contacto: this.correo_contacto,
+      informacion_adicional: this.informacion_adicional,
+      skills: this._convertSkillsToDisplayValues(this.skills),
+      tags: this._convertTagsToDisplayValues(this.tags),
+      modalidad: this.modalidad,
+      lugar: this.lugar,
+      fecha_hora: this.fecha_hora,
+      imagen_url: this.imagen_url,
+      requiere_postulacion: this.requiere_postulacion,
+      activo: this.activo,
+      created_by: this.created_by,
+      created_at: this.created_at,
+      updated_at: this.updated_at
+    };
+  }
+
+  // Método para obtener datos públicos (sin información del creador)
+  toPublicJSON() {
+    return {
+      id: this.id,
+      titulo: this.titulo,
+      descripcion: this.descripcion,
+      fecha_aplicacion_prioritaria: this.fecha_aplicacion_prioritaria,
+      fecha_aplicacion_general: this.fecha_aplicacion_general,
+      duracion: this.duracion,
+      correo_contacto: this.correo_contacto,
+      informacion_adicional: this.informacion_adicional,
+      skills: this._convertSkillsToDisplayValues(this.skills),
+      tags: this._convertTagsToDisplayValues(this.tags),
+      modalidad: this.modalidad,
+      lugar: this.lugar,
+      fecha_hora: this.fecha_hora,
+      imagen_url: this.imagen_url,
+      requiere_postulacion: this.requiere_postulacion,
+      created_at: this.created_at
+    };
+  }
+}
+
+module.exports = Event;
