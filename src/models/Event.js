@@ -10,9 +10,17 @@ class Event {
     this.duracion = eventData.duracion;
     this.correo_contacto = eventData.correo_contacto;
     this.informacion_adicional = eventData.informacion_adicional;
-    // Skills y tags son arrays
-    this.skills = Array.isArray(eventData.skills) ? eventData.skills : [];
-    this.tags = Array.isArray(eventData.tags) ? eventData.tags : [];
+    // Skills y tags: convertir string tipo '{tag1,tag2}' a array si es necesario
+    this.skills = Array.isArray(eventData.skills)
+      ? eventData.skills
+      : (typeof eventData.skills === 'string' && eventData.skills.startsWith('{'))
+        ? eventData.skills.slice(1, -1).split(',').map(s => s.trim()).filter(Boolean)
+        : [];
+    this.tags = Array.isArray(eventData.tags)
+      ? eventData.tags
+      : (typeof eventData.tags === 'string' && eventData.tags.startsWith('{'))
+        ? eventData.tags.slice(1, -1).split(',').map(s => s.trim()).filter(Boolean)
+        : [];
     this.modalidad = eventData.modalidad;
     this.lugar = eventData.lugar;
     this.fecha_hora = eventData.fecha_hora;
