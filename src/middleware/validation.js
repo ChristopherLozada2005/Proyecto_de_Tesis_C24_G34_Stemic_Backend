@@ -470,8 +470,23 @@ const validateEventFilters = (req, res, next) => {
 
 // Validación para perfil de usuario
 const validateProfile = (req, res, next) => {
-  const { gender, phone_number, birth_date, description, interests } = req.body;
+  const { avatar_url, gender, phone_number, birth_date, description, interests } = req.body;
   const errors = [];
+
+  // Validar avatar_url si se proporciona
+  if (avatar_url !== undefined && avatar_url !== null && avatar_url !== '') {
+    if (typeof avatar_url !== 'string') {
+      errors.push('La URL del avatar debe ser texto');
+    } else if (avatar_url.trim().length > 500) {
+      errors.push('La URL del avatar no puede exceder 500 caracteres');
+    } else {
+      // Validación básica de formato URL
+      const urlRegex = /^https?:\/\/.+/;
+      if (!urlRegex.test(avatar_url.trim())) {
+        errors.push('La URL del avatar debe ser una URL válida (http:// o https://)');
+      }
+    }
+  }
 
   // Validar género si se proporciona
   if (gender && !['masculino', 'femenino', 'otro', 'prefiero_no_decir'].includes(gender)) {
@@ -557,6 +572,7 @@ const validateProfile = (req, res, next) => {
   }
 
   // Limpiar datos
+  if (avatar_url) req.body.avatar_url = avatar_url.trim();
   if (phone_number) req.body.phone_number = phone_number.trim();
   if (description) req.body.description = description.trim();
 

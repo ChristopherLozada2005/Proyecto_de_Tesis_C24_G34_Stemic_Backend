@@ -4,6 +4,7 @@ class Profile {
   constructor(profileData) {
     this.id = profileData.id;
     this.user_id = profileData.user_id;
+    this.avatar_url = profileData.avatar_url;
     this.gender = profileData.gender;
     this.phone_number = profileData.phone_number;
     this.birth_date = profileData.birth_date;
@@ -17,6 +18,7 @@ class Profile {
   static async createOrUpdate(userId, profileData) {
     try {
       const {
+        avatar_url,
         gender,
         phone_number,
         birth_date,
@@ -41,21 +43,23 @@ class Profile {
         // Actualizar perfil existente
         result = await query(
           `UPDATE profiles SET 
-           gender = $1,
-           phone_number = $2,
-           birth_date = $3,
-           description = $4,
-           interests = $5,
+           avatar_url = $1,
+           gender = $2,
+           phone_number = $3,
+           birth_date = $4,
+           description = $5,
+           interests = $6,
            updated_at = CURRENT_TIMESTAMP
-           WHERE user_id = $6
+           WHERE user_id = $7
            RETURNING *`,
-          [gender, phone_number, birth_date, description, interests, userId]
+          [avatar_url, gender, phone_number, birth_date, description, interests, userId]
         );
       } else {
         // Crear nuevo perfil
         result = await query(
           `INSERT INTO profiles (
             user_id,
+            avatar_url,
             gender,
             phone_number,
             birth_date,
@@ -63,9 +67,9 @@ class Profile {
             interests,
             created_at,
             updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
           RETURNING *`,
-          [userId, gender, phone_number, birth_date, description, interests]
+          [userId, avatar_url, gender, phone_number, birth_date, description, interests]
         );
       }
 
@@ -97,9 +101,9 @@ class Profile {
           u.id as user_id,
           u.nombre,
           u.correo,
-          u.avatar_url,
           u.created_at as user_created_at,
           p.id as profile_id,
+          p.avatar_url,
           p.gender,
           p.phone_number,
           p.birth_date,
@@ -124,11 +128,11 @@ class Profile {
           id: row.user_id,
           nombre: row.nombre,
           correo: row.correo,
-          avatar_url: row.avatar_url,
           created_at: row.user_created_at
         },
         profile: row.profile_id ? {
           id: row.profile_id,
+          avatar_url: row.avatar_url,
           gender: row.gender,
           phone_number: row.phone_number,
           birth_date: row.birth_date,
@@ -165,6 +169,7 @@ class Profile {
     return {
       id: this.id,
       user_id: this.user_id,
+      avatar_url: this.avatar_url,
       gender: this.gender,
       phone_number: this.phone_number,
       birth_date: this.birth_date,

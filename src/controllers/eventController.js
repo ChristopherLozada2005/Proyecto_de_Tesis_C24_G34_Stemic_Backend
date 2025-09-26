@@ -1,13 +1,14 @@
 const Event = require('../models/Event');
-const { deleteFile } = require('../middleware/upload');
+const { deleteOldImage } = require('../middleware/cloudinaryUpload');
 
 class EventController {
   // Crear nuevo evento
   static async createEvent(req, res) {
     try {
+      // Usar el ID del usuario autenticado como creador
       const eventData = {
         ...req.body,
-        created_by: req.user.id
+        created_by: req.user.id  // Usuario autenticado es el creador
       };
 
       // Si se subió una imagen, la URL ya está en req.body.imagen_url gracias al middleware
@@ -22,12 +23,12 @@ class EventController {
     } catch (error) {
       console.error('Error en createEvent:', error);
       
-      // Si hay error y se subió una imagen, eliminarla
+      // Si hay error y se subió una imagen a Cloudinary, eliminarla
       if (req.uploadedFile) {
         try {
-          await deleteFile(req.uploadedFile.filename);
+          await deleteOldImage(req.uploadedFile.url);
         } catch (deleteError) {
-          console.error('Error al eliminar archivo tras fallo:', deleteError);
+          console.error('Error al eliminar imagen de Cloudinary tras fallo:', deleteError);
         }
       }
 
@@ -127,10 +128,8 @@ class EventController {
         });
       }
 
-      // Si el usuario es el creador, mostrar todos los datos, sino solo los públicos
-      const eventData = req.user && event.canEdit(req.user.id) 
-        ? event.toJSON() 
-        : event.toPublicJSON();
+      // Por ahora todos los datos son públicos (sin autenticación)
+      const eventData = event.toJSON();
 
       res.json({
         success: true,
@@ -176,6 +175,7 @@ class EventController {
     }
   }
 
+
   // Actualizar evento
   static async updateEvent(req, res) {
     try {
@@ -199,6 +199,7 @@ class EventController {
         });
       }
 
+      // Verificar permisos: solo el creador puede editar
       if (!existingEvent.canEdit(req.user.id)) {
         return res.status(403).json({
           success: false,
@@ -206,27 +207,13 @@ class EventController {
         });
       }
 
-      // Guardar la imagen anterior para posible eliminación
-      const oldImageUrl = existingEvent.imagen_url;
-      
+      // Si hay nueva imagen y el evento tenía una anterior, eliminar la anterior
+      if (req.body.imagen_url && existingEvent.imagen_url && existingEvent.imagen_url !== req.body.imagen_url) {
+        await deleteOldImage(existingEvent.imagen_url);
+      }
+
       // Actualizar evento
       const updatedEvent = await Event.update(id, req.body, req.user.id);
-
-      // Si se cambió la imagen, eliminar la anterior
-      if (oldImageUrl && req.body.imagen_url && oldImageUrl !== req.body.imagen_url) {
-        try {
-          const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
-          const expectedPrefix = `${baseUrl}/uploads/events/`;
-          
-          if (oldImageUrl.startsWith(expectedPrefix)) {
-            const oldFilename = oldImageUrl.replace(expectedPrefix, '');
-            await deleteFile(oldFilename);
-          }
-        } catch (deleteError) {
-          console.error('Error al eliminar imagen anterior:', deleteError);
-          // No fallar la actualización por esto
-        }
-      }
 
       res.json({
         success: true,
@@ -237,12 +224,12 @@ class EventController {
     } catch (error) {
       console.error('Error en updateEvent:', error);
       
-      // Si hay error y se subió una nueva imagen, eliminarla
+      // Si hay error y se subió una nueva imagen a Cloudinary, eliminarla
       if (req.uploadedFile) {
         try {
-          await deleteFile(req.uploadedFile.filename);
+          await deleteOldImage(req.uploadedFile.url);
         } catch (deleteError) {
-          console.error('Error al eliminar archivo tras fallo:', deleteError);
+          console.error('Error al eliminar imagen de Cloudinary tras fallo:', deleteError);
         }
       }
 
@@ -283,6 +270,7 @@ class EventController {
         });
       }
 
+      // Verificar permisos: solo el creador puede eliminar
       if (!existingEvent.canEdit(req.user.id)) {
         return res.status(403).json({
           success: false,

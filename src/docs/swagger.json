@@ -3,7 +3,7 @@
   "info": {
     "title": "API STEMIC",
     "version": "1.0.0",
-    "description": "Documentación de la API STEMIC"
+    "description": "Documentación de la API STEMIC con soporte para Cloudinary"
   },
   "paths": {
     "/api/auth/forgot-password": {
@@ -157,29 +157,6 @@
         }
       }
     },
-    "/api/auth/refresh-token": {
-      "post": {
-        "summary": "Refrescar token de acceso",
-        "tags": ["Auth"],
-        "requestBody": {
-          "required": false
-        },
-        "responses": {
-          "200": { "description": "Nuevo token generado" },
-          "500": { "description": "Error interno del servidor" }
-        }
-      }
-    },
-    "/api/auth/logout": {
-      "post": {
-        "summary": "Cerrar sesión",
-        "tags": ["Auth"],
-        "responses": {
-          "200": { "description": "Sesión cerrada exitosamente" },
-          "500": { "description": "Error interno del servidor" }
-        }
-      }
-    },
     "/api/auth/profile": {
       "get": {
         "summary": "Obtener perfil completo del usuario autenticado",
@@ -190,37 +167,16 @@
             "description": "Perfil obtenido correctamente",
             "content": {
               "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "nombre": { "type": "string" },
-                        "correo": { "type": "string", "format": "email" },
-                        "avatar_url": { "type": "string", "nullable": true },
-                        "gender": { "type": "string", "enum": ["masculino", "femenino", "otro", "prefiero_no_decir"], "nullable": true },
-                        "phone_number": { "type": "string", "nullable": true },
-                        "birth_date": { "type": "string", "format": "date", "nullable": true },
-                        "description": { "type": "string", "nullable": true },
-                        "interests": { "type": "array", "items": { "type": "string", "enum": ["ia", "tech", "networking"] } },
-                        "user_created_at": { "type": "string", "format": "date-time" },
-                        "profile_updated_at": { "type": "string", "format": "date-time", "nullable": true }
-                      }
-                    }
-                  }
-                },
                 "example": {
                   "success": true,
                   "data": {
                     "nombre": "Juan Pérez",
                     "correo": "juan@mail.com",
-                    "avatar_url": "https://example.com/avatar.jpg",
+                    "avatar_url": "https://res.cloudinary.com/demo/image/upload/v123/stemic/profiles/avatar123.jpg",
                     "gender": "masculino",
                     "phone_number": "+502 1234-5678",
                     "birth_date": "1995-06-15",
-                    "description": "Desarrollador apasionado por la tecnología y la innovación.",
+                    "description": "Desarrollador apasionado por la tecnología",
                     "interests": ["ia", "tech"],
                     "user_created_at": "2024-01-15T10:30:00Z",
                     "profile_updated_at": "2024-02-20T14:45:00Z"
@@ -230,7 +186,6 @@
             }
           },
           "401": { "description": "No autorizado" },
-          "404": { "description": "Usuario no encontrado" },
           "500": { "description": "Error interno del servidor" }
         }
       },
@@ -241,81 +196,83 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
+            "multipart/form-data": {
               "schema": {
                 "type": "object",
                 "properties": {
+                  "avatar": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Archivo de imagen para el avatar (JPEG, PNG, WebP) - máx 5MB"
+                  },
                   "gender": { 
                     "type": "string", 
-                    "enum": ["masculino", "femenino", "otro", "prefiero_no_decir"],
-                    "nullable": true
+                    "enum": ["masculino", "femenino", "otro", "prefiero_no_decir"]
                   },
                   "phone_number": { 
-                    "type": "string", 
-                    "pattern": "^[\\+]?[0-9\\s\\-\\(\\)]{7,20}$",
-                    "nullable": true,
-                    "description": "Número telefónico (7-20 caracteres, puede incluir +, espacios, guiones y paréntesis)"
+                    "type": "string",
+                    "description": "Número telefónico (7-20 caracteres)"
                   },
                   "birth_date": { 
                     "type": "string", 
                     "format": "date",
-                    "nullable": true,
                     "description": "Fecha de nacimiento (mínimo 13 años)"
                   },
                   "description": { 
-                    "type": "string", 
-                    "maxLength": 1000,
-                    "nullable": true,
+                    "type": "string",
                     "description": "Descripción personal (máximo 1000 caracteres)"
                   },
                   "interests": { 
                     "type": "array", 
-                    "items": { "type": "string", "enum": ["ia", "tech", "networking"] },
-                    "uniqueItems": true,
-                    "description": "Intereses del usuario basados en tags de eventos"
+                    "items": { "type": "string" },
+                    "description": "Intereses: ia, tech, networking"
+                  }
+                }
+              }
+            },
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "avatar_url": { 
+                    "type": "string", 
+                    "format": "uri",
+                    "description": "URL del avatar (alternativa a subir archivo)"
+                  },
+                  "gender": { 
+                    "type": "string", 
+                    "enum": ["masculino", "femenino", "otro", "prefiero_no_decir"]
+                  },
+                  "phone_number": { 
+                    "type": "string",
+                    "description": "Número telefónico"
+                  },
+                  "birth_date": { 
+                    "type": "string", 
+                    "format": "date"
+                  },
+                  "description": { 
+                    "type": "string"
+                  },
+                  "interests": { 
+                    "type": "array", 
+                    "items": { "type": "string", "enum": ["ia", "tech", "networking"] }
                   }
                 }
               },
               "example": {
+                "avatar_url": "https://example.com/avatar.jpg",
                 "gender": "masculino",
                 "phone_number": "+502 1234-5678",
                 "birth_date": "1995-06-15",
-                "description": "Desarrollador apasionado por la tecnología y la innovación. Me encanta aprender sobre nuevas tendencias y participar en eventos tech.",
+                "description": "Desarrollador apasionado por la tecnología",
                 "interests": ["ia", "tech"]
               }
             }
           }
         },
         "responses": {
-          "200": {
-            "description": "Perfil actualizado exitosamente",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "nombre": { "type": "string" },
-                        "correo": { "type": "string", "format": "email" },
-                        "avatar_url": { "type": "string", "nullable": true },
-                        "gender": { "type": "string", "nullable": true },
-                        "phone_number": { "type": "string", "nullable": true },
-                        "birth_date": { "type": "string", "format": "date", "nullable": true },
-                        "description": { "type": "string", "nullable": true },
-                        "interests": { "type": "array", "items": { "type": "string" } },
-                        "user_created_at": { "type": "string", "format": "date-time" },
-                        "profile_updated_at": { "type": "string", "format": "date-time", "nullable": true }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
+          "200": { "description": "Perfil actualizado exitosamente" },
           "400": { "description": "Errores de validación" },
           "401": { "description": "No autorizado" },
           "500": { "description": "Error interno del servidor" }
@@ -332,37 +289,6 @@
             "description": "Opciones obtenidas correctamente",
             "content": {
               "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "genders": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "value": { "type": "string" },
-                              "label": { "type": "string" }
-                            }
-                          }
-                        },
-                        "interests": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "value": { "type": "string" },
-                              "label": { "type": "string" }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                },
                 "example": {
                   "success": true,
                   "data": {
@@ -396,38 +322,15 @@
             "description": "Opciones obtenidas correctamente",
             "content": {
               "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "skills": {
-                          "type": "array",
-                          "items": { "type": "string" }
-                        },
-                        "tags": {
-                          "type": "array",
-                          "items": { "type": "string" }
-                        },
-                        "modalidades": {
-                          "type": "array",
-                          "items": { "type": "string" }
-                        }
-                      }
-                    }
-                  }
-                },
                 "example": {
                   "success": true,
                   "data": {
                     "skills": [
                       {"value": "Liderazgo", "label": "Liderazgo"},
-                      {"value": "Pensamiento Crítico", "label": "Pensamiento Crítico"},
-                      {"value": "Colaboración", "label": "Colaboración"},
-                      {"value": "Conocimiento Técnico", "label": "Conocimiento Técnico"},
-                      {"value": "Comunicación", "label": "Comunicación"}
+                      {"value": "Pensamiento Critico", "label": "Pensamiento Crítico"},
+                      {"value": "Colaboracion", "label": "Colaboración"},
+                      {"value": "Conocimiento Tecnico", "label": "Conocimiento Técnico"},
+                      {"value": "Comunicacion", "label": "Comunicación"}
                     ],
                     "tags": ["IA", "TECH", "NETWORKING"],
                     "modalidades": ["virtual", "presencial", "hibrido"]
@@ -447,248 +350,13 @@
           {
             "name": "modalidad",
             "in": "query",
-            "schema": { "type": "string", "enum": ["virtual", "presencial", "hibrido"] },
-            "description": "Filtrar por modalidad"
-          },
-          {
-            "name": "skills",
-            "in": "query",
-            "schema": { "type": "string" },
-            "description": "Filtrar por skills (separados por comas)"
-          },
-          {
-            "name": "tags",
-            "in": "query",
-            "schema": { "type": "string" },
-            "description": "Filtrar por tags (separados por comas)"
-          },
-          {
-            "name": "fecha_desde",
-            "in": "query",
-            "schema": { "type": "string", "format": "date" },
-            "description": "Filtrar eventos desde esta fecha"
-          },
-          {
-            "name": "fecha_hasta",
-            "in": "query",
-            "schema": { "type": "string", "format": "date" },
-            "description": "Filtrar eventos hasta esta fecha"
-          },
-          {
-            "name": "search",
-            "in": "query",
-            "schema": { "type": "string" },
-            "description": "Buscar en título, descripción e información adicional"
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "schema": { "type": "integer", "default": 1 },
-            "description": "Número de página"
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "schema": { "type": "integer", "default": 10, "maximum": 100 },
-            "description": "Elementos por página"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Eventos obtenidos correctamente",
-            "content": {
-              "application/json": {
-                "example": {
-                  "success": true,
-                  "data": [],
-                  "meta": {
-                    "page": 1,
-                    "limit": 10,
-                    "total_shown": 0,
-                    "has_more": false,
-                    "stats": {
-                      "total_eventos": "0",
-                      "virtuales": "0",
-                      "presenciales": "0",
-                      "hibridos": "0"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/events/public/{id}": {
-      "get": {
-        "summary": "Obtener evento específico por ID",
-        "tags": ["Events - Público"],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": { "type": "string", "format": "uuid" },
-            "description": "ID del evento (UUID)"
-          }
-        ],
-        "responses": {
-          "200": { "description": "Evento encontrado" },
-          "404": { "description": "Evento no encontrado" },
-          "400": { "description": "ID inválido" }
-        }
-      }
-    },
-    "/api/events/public/search": {
-      "get": {
-        "summary": "Buscar eventos por término",
-        "tags": ["Events - Público"],
-        "parameters": [
-          {
-            "name": "q",
-            "in": "query",
-            "required": true,
-            "schema": { "type": "string", "minLength": 2 },
-            "description": "Término de búsqueda"
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "schema": { "type": "integer", "default": 10 },
-            "description": "Límite de resultados"
-          }
-        ],
-        "responses": {
-          "200": { "description": "Resultados de búsqueda" },
-          "400": { "description": "Término de búsqueda inválido" }
-        }
-      }
-    },
-    "/api/events": {
-      "post": {
-        "summary": "Crear nuevo evento",
-        "tags": ["Events - Protegido"],
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "titulo": { "type": "string", "minLength": 3 },
-                  "descripcion": { "type": "string", "minLength": 10 },
-                  "fecha_aplicacion_prioritaria": { "type": "string", "format": "date" },
-                  "fecha_aplicacion_general": { "type": "string", "format": "date" },
-                  "duracion": { 
-                    "type": "string", 
-                    "pattern": "^([0-1]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$",
-                    "description": "Duración del evento en formato HH:MM:SS (ejemplo: 02:30:00)",
-                    "example": "02:30:00"
-                  },
-                  "correo_contacto": { "type": "string", "format": "email" },
-                  "informacion_adicional": { "type": "string" },
-                  "skills": { 
-                    "type": "array", 
-                    "items": {
-                      "type": "string",
-                      "enum": ["Liderazgo", "Pensamiento Critico", "Colaboracion", "Conocimiento Tecnico", "Comunicacion"]
-                    },
-                    "description": "Skills del evento (selecciona uno o varios de los 5 disponibles)",
-                    "uniqueItems": true
-                  },
-                  "tags": { "type": "array", "items": { "type": "string" } },
-                  "modalidad": { "type": "string", "enum": ["virtual", "presencial", "hibrido"] },
-                  "lugar": { "type": "string" },
-                  "fecha_hora": { "type": "string", "format": "date-time" },
-                  "requiere_postulacion": { "type": "boolean", "default": false },
-                  "imagen": { "type": "string", "format": "binary" }
-                },
-                "required": ["titulo", "descripcion", "fecha_aplicacion_prioritaria", "fecha_aplicacion_general", "duracion", "correo_contacto", "modalidad", "fecha_hora"]
-              }
-            },
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "titulo": { "type": "string", "minLength": 3 },
-                  "descripcion": { "type": "string", "minLength": 10 },
-                  "fecha_aplicacion_prioritaria": { "type": "string", "format": "date" },
-                  "fecha_aplicacion_general": { "type": "string", "format": "date" },
-                  "duracion": { 
-                    "type": "string", 
-                    "pattern": "^([0-1]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$",
-                    "description": "Duración del evento en formato HH:MM:SS (ejemplo: 02:30:00)",
-                    "example": "02:30:00"
-                  },
-                  "correo_contacto": { "type": "string", "format": "email" },
-                  "informacion_adicional": { "type": "string" },
-                  "skills": { 
-                    "type": "array", 
-                    "items": {
-                      "type": "string",
-                      "enum": ["Liderazgo", "Pensamiento Critico", "Colaboracion", "Conocimiento Tecnico", "Comunicacion"]
-                    },
-                    "description": "Skills del evento (selecciona uno o varios de los 5 disponibles)",
-                    "uniqueItems": true
-                  },
-                  "tags": { "type": "array", "items": { "type": "string" } },
-                  "modalidad": { "type": "string", "enum": ["virtual", "presencial", "hibrido"] },
-                  "lugar": { "type": "string" },
-                  "fecha_hora": { "type": "string", "format": "date-time" },
-                  "requiere_postulacion": { "type": "boolean", "default": false }
-                },
-                "required": ["titulo", "descripcion", "fecha_aplicacion_prioritaria", "fecha_aplicacion_general", "duracion", "correo_contacto", "modalidad", "fecha_hora"]
-              },
-              "example": {
-                "titulo": "Evento de Tecnología e IA",
-                "descripcion": "Un evento increíble sobre las últimas tendencias en inteligencia artificial",
-                "fecha_aplicacion_prioritaria": "2024-12-01",
-                "fecha_aplicacion_general": "2024-12-05",
-                "duracion": "03:00:00",
-                "correo_contacto": "contacto@evento.com",
-                "informacion_adicional": "Se proporcionará certificado de participación",
-                "skills": ["Conocimiento Técnico", "Pensamiento Crítico"],
-                "tags": ["IA", "TECH"],
-                "modalidad": "virtual",
-                "lugar": "Zoom Meeting Room",
-                "fecha_hora": "2024-12-10T14:00:00Z",
-                "requiere_postulacion": false
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": { "description": "Evento creado exitosamente" },
-          "400": { "description": "Errores de validación" },
-          "401": { "description": "No autorizado" }
-        }
-      },
-      "get": {
-        "summary": "Obtener eventos (autenticado)",
-        "tags": ["Events - Protegido"],
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [
-          {
-            "name": "modalidad",
-            "in": "query",
             "schema": { "type": "string", "enum": ["virtual", "presencial", "hibrido"] }
           },
           {
-            "name": "skills",
-            "in": "query",
-            "schema": { "type": "string" }
-          },
-          {
-            "name": "tags",
-            "in": "query",
-            "schema": { "type": "string" }
-          },
-          {
             "name": "search",
             "in": "query",
-            "schema": { "type": "string" }
+            "schema": { "type": "string" },
+            "description": "Buscar en título y descripción"
           },
           {
             "name": "page",
@@ -698,9 +366,68 @@
           {
             "name": "limit",
             "in": "query",
-            "schema": { "type": "integer", "default": 10 }
+            "schema": { "type": "integer", "default": 10, "maximum": 100 }
           }
         ],
+        "responses": {
+          "200": { "description": "Eventos obtenidos correctamente" }
+        }
+      }
+    },
+    "/api/events": {
+      "post": {
+        "summary": "Crear nuevo evento",
+        "tags": ["Events - Protegido"],
+        "security": [{ "bearerAuth": [] }],
+        "description": "Solo usuarios con rol 'organizador' o 'admin' pueden crear eventos",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "imagen": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Imagen del evento (JPEG, PNG, WebP) - máx 10MB"
+                  },
+                  "titulo": { "type": "string", "minLength": 3 },
+                  "descripcion": { "type": "string", "minLength": 10 },
+                  "fecha_aplicacion_prioritaria": { "type": "string", "format": "date" },
+                  "fecha_aplicacion_general": { "type": "string", "format": "date" },
+                  "duracion": { 
+                    "type": "string", 
+                    "pattern": "^([0-1]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$",
+                    "description": "Duración en formato HH:MM:SS"
+                  },
+                  "correo_contacto": { "type": "string", "format": "email" },
+                  "informacion_adicional": { "type": "string" },
+                  "skills": { 
+                    "type": "array", 
+                    "items": { "type": "string" }
+                  },
+                  "tags": { "type": "array", "items": { "type": "string" } },
+                  "modalidad": { "type": "string", "enum": ["virtual", "presencial", "hibrido"] },
+                  "lugar": { "type": "string" },
+                  "fecha_hora": { "type": "string", "format": "date-time" },
+                  "requiere_postulacion": { "type": "boolean", "default": false }
+                },
+                "required": ["titulo", "descripcion", "fecha_aplicacion_prioritaria", "fecha_aplicacion_general", "duracion", "correo_contacto", "modalidad", "fecha_hora"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Evento creado exitosamente" },
+          "400": { "description": "Errores de validación" },
+          "401": { "description": "No autorizado - Token requerido" },
+          "403": { "description": "Acceso denegado - Se requiere rol organizador o admin" }
+        }
+      },
+      "get": {
+        "summary": "Obtener todos los eventos",
+        "tags": ["Events - Público"],
         "responses": {
           "200": { "description": "Eventos obtenidos correctamente" },
           "401": { "description": "No autorizado" }
@@ -709,9 +436,8 @@
     },
     "/api/events/{id}": {
       "get": {
-        "summary": "Obtener evento específico (autenticado)",
-        "tags": ["Events - Protegido"],
-        "security": [{ "bearerAuth": [] }],
+        "summary": "Obtener evento específico",
+        "tags": ["Events - Público"],
         "parameters": [
           {
             "name": "id",
@@ -730,6 +456,7 @@
         "summary": "Actualizar evento",
         "tags": ["Events - Protegido"],
         "security": [{ "bearerAuth": [] }],
+        "description": "Solo usuarios con rol 'organizador' o 'admin' pueden actualizar eventos. Solo el creador puede modificar su propio evento.",
         "parameters": [
           {
             "name": "id",
@@ -745,33 +472,37 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "titulo": { "type": "string" },
-                  "descripcion": { "type": "string" },
+                  "imagen": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Nueva imagen del evento (opcional)"
+                  },
+                  "titulo": { "type": "string", "minLength": 3 },
+                  "descripcion": { "type": "string", "minLength": 10 },
                   "fecha_aplicacion_prioritaria": { "type": "string", "format": "date" },
                   "fecha_aplicacion_general": { "type": "string", "format": "date" },
                   "duracion": { 
                     "type": "string", 
                     "pattern": "^([0-1]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$",
-                    "description": "Duración del evento en formato HH:MM:SS (ejemplo: 02:30:00)",
-                    "example": "02:30:00"
+                    "description": "Duración en formato HH:MM:SS"
                   },
                   "correo_contacto": { "type": "string", "format": "email" },
                   "informacion_adicional": { "type": "string" },
                   "skills": { 
                     "type": "array", 
-                    "items": {
-                      "type": "string",
-                      "enum": ["Liderazgo", "Pensamiento Critico", "Colaboracion", "Conocimiento Tecnico", "Comunicacion"]
-                    },
-                    "description": "Skills del evento (selecciona uno o varios de los 5 disponibles)",
-                    "uniqueItems": true
+                    "items": { "type": "string" },
+                    "description": "Skills del evento"
                   },
-                  "tags": { "type": "array", "items": { "type": "string" } },
+                  "tags": { 
+                    "type": "array", 
+                    "items": { "type": "string" },
+                    "description": "Tags del evento"
+                  },
                   "modalidad": { "type": "string", "enum": ["virtual", "presencial", "hibrido"] },
                   "lugar": { "type": "string" },
                   "fecha_hora": { "type": "string", "format": "date-time" },
                   "requiere_postulacion": { "type": "boolean" },
-                  "imagen": { "type": "string", "format": "binary" }
+                  "activo": { "type": "boolean", "description": "Estado del evento" }
                 }
               }
             },
@@ -781,12 +512,23 @@
                 "properties": {
                   "titulo": { "type": "string" },
                   "descripcion": { "type": "string" },
+                  "fecha_aplicacion_prioritaria": { "type": "string", "format": "date" },
+                  "fecha_aplicacion_general": { "type": "string", "format": "date" },
+                  "duracion": { "type": "string" },
+                  "correo_contacto": { "type": "string", "format": "email" },
+                  "informacion_adicional": { "type": "string" },
+                  "skills": { "type": "array", "items": { "type": "string" } },
+                  "tags": { "type": "array", "items": { "type": "string" } },
                   "modalidad": { "type": "string", "enum": ["virtual", "presencial", "hibrido"] },
-                  "lugar": { "type": "string" }
+                  "lugar": { "type": "string" },
+                  "fecha_hora": { "type": "string", "format": "date-time" },
+                  "requiere_postulacion": { "type": "boolean" },
+                  "activo": { "type": "boolean" }
                 }
               },
               "example": {
-                "titulo": "Evento ACTUALIZADO",
+                "titulo": "Evento Actualizado",
+                "descripcion": "Nueva descripción del evento",
                 "modalidad": "hibrido",
                 "lugar": "Auditorio Central + Zoom"
               }
@@ -796,8 +538,8 @@
         "responses": {
           "200": { "description": "Evento actualizado exitosamente" },
           "400": { "description": "Errores de validación" },
-          "401": { "description": "No autorizado" },
-          "403": { "description": "Sin permisos para editar este evento" },
+          "401": { "description": "No autorizado - Token requerido" },
+          "403": { "description": "Acceso denegado - Se requiere rol organizador/admin y ser el creador" },
           "404": { "description": "Evento no encontrado" }
         }
       },
@@ -805,6 +547,7 @@
         "summary": "Eliminar evento",
         "tags": ["Events - Protegido"],
         "security": [{ "bearerAuth": [] }],
+        "description": "Solo usuarios con rol 'organizador' o 'admin' pueden eliminar eventos. Solo el creador puede eliminar su propio evento.",
         "parameters": [
           {
             "name": "id",
@@ -815,57 +558,9 @@
         ],
         "responses": {
           "200": { "description": "Evento eliminado exitosamente" },
-          "401": { "description": "No autorizado" },
-          "403": { "description": "Sin permisos para eliminar este evento" },
+          "401": { "description": "No autorizado - Token requerido" },
+          "403": { "description": "Acceso denegado - Se requiere rol organizador/admin y ser el creador" },
           "404": { "description": "Evento no encontrado" }
-        }
-      }
-    },
-    "/api/events/user/my-events": {
-      "get": {
-        "summary": "Obtener mis eventos",
-        "tags": ["Events - Usuario"],
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [
-          {
-            "name": "includeInactive",
-            "in": "query",
-            "schema": { "type": "boolean", "default": false },
-            "description": "Incluir eventos inactivos"
-          }
-        ],
-        "responses": {
-          "200": { "description": "Mis eventos obtenidos correctamente" },
-          "401": { "description": "No autorizado" }
-        }
-      }
-    },
-    "/api/events/user/stats": {
-      "get": {
-        "summary": "Obtener estadísticas de mis eventos",
-        "tags": ["Events - Usuario"],
-        "security": [{ "bearerAuth": [] }],
-        "responses": {
-          "200": {
-            "description": "Estadísticas obtenidas correctamente",
-            "content": {
-              "application/json": {
-                "example": {
-                  "success": true,
-                  "data": {
-                    "total_eventos": "5",
-                    "virtuales": "2",
-                    "presenciales": "2",
-                    "hibridos": "1",
-                    "con_postulacion": "2",
-                    "futuros": "3",
-                    "pasados": "2"
-                  }
-                }
-              }
-            }
-          },
-          "401": { "description": "No autorizado" }
         }
       }
     }

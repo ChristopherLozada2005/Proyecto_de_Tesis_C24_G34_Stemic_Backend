@@ -210,14 +210,15 @@ class Event {
   }
 
   // Actualizar evento
-  static async update(id, eventData, userId) {
-    // Primero verificar que el evento existe y el usuario tiene permisos
+  static async update(id, eventData, userId = null) {
+    // Primero verificar que el evento existe
     const existingEvent = await Event.findById(id);
     if (!existingEvent) {
       throw new Error('Evento no encontrado');
     }
 
-    if (existingEvent.created_by !== userId) {
+    // Validación de permisos solo si se proporciona userId (cuando hay autenticación)
+    if (userId && existingEvent.created_by !== userId) {
       throw new Error('No tienes permisos para actualizar este evento');
     }
 
@@ -275,27 +276,28 @@ class Event {
   }
 
   // Eliminar evento (soft delete)
-  static async delete(id, userId) {
+  static async delete(id, userId = null) {
     const existingEvent = await Event.findById(id);
     if (!existingEvent) {
       throw new Error('Evento no encontrado');
     }
 
-    if (existingEvent.created_by !== userId) {
+    // Validación de permisos solo si se proporciona userId (cuando hay autenticación)
+    if (userId && existingEvent.created_by !== userId) {
       throw new Error('No tienes permisos para eliminar este evento');
     }
 
     const queryText = `
       UPDATE eventos 
       SET activo = false 
-      WHERE id = $1 AND created_by = $2
+      WHERE id = $1
       RETURNING id
     `;
 
-    const result = await query(queryText, [id, userId]);
+    const result = await query(queryText, [id]);
     
     if (result.rows.length === 0) {
-      throw new Error('Evento no encontrado o no autorizado');
+      throw new Error('Evento no encontrado');
     }
 
     return { id: result.rows[0].id, deleted: true };

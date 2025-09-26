@@ -238,9 +238,9 @@ class AuthController {
           // Datos del usuario (desde la tabla users)
           nombre: profileData.user.nombre,
           correo: profileData.user.correo,
-          avatar_url: profileData.user.avatar_url,
           
           // Datos del perfil (desde la tabla profiles)
+          avatar_url: profileData.profile?.avatar_url || null,
           gender: profileData.profile?.gender || null,
           phone_number: profileData.profile?.phone_number || null,
           birth_date: profileData.profile?.birth_date || null,

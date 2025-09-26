@@ -1,4 +1,5 @@
 const Profile = require('../models/Profile');
+const { deleteOldImage } = require('../middleware/cloudinaryUpload');
 
 class ProfileController {
   // Obtener perfil completo del usuario autenticado
@@ -21,9 +22,9 @@ class ProfileController {
           // Datos del usuario (desde la tabla users)
           nombre: profileData.user.nombre,
           correo: profileData.user.correo,
-          avatar_url: profileData.user.avatar_url,
           
           // Datos del perfil (desde la tabla profiles)
+          avatar_url: profileData.profile?.avatar_url || null,
           gender: profileData.profile?.gender || null,
           phone_number: profileData.profile?.phone_number || null,
           birth_date: profileData.profile?.birth_date || null,
@@ -48,7 +49,7 @@ class ProfileController {
   static async updateProfile(req, res) {
     try {
       const userId = req.user.id;
-      const { gender, phone_number, birth_date, description, interests } = req.body;
+      const { avatar_url, gender, phone_number, birth_date, description, interests } = req.body;
 
       // Validación básica
       if (birth_date) {
@@ -78,8 +79,17 @@ class ProfileController {
         });
       }
 
+      // Si hay nueva imagen y el usuario tenía una anterior, eliminar la anterior
+      if (avatar_url) {
+        const existingProfile = await Profile.findByUserId(userId);
+        if (existingProfile && existingProfile.avatar_url && existingProfile.avatar_url !== avatar_url) {
+          await deleteOldImage(existingProfile.avatar_url);
+        }
+      }
+
       // Crear o actualizar perfil
       const profile = await Profile.createOrUpdate(userId, {
+        avatar_url,
         gender,
         phone_number,
         birth_date,
@@ -96,7 +106,7 @@ class ProfileController {
         data: {
           nombre: completeProfile.user.nombre,
           correo: completeProfile.user.correo,
-          avatar_url: completeProfile.user.avatar_url,
+          avatar_url: completeProfile.profile?.avatar_url || null,
           gender: completeProfile.profile?.gender || null,
           phone_number: completeProfile.profile?.phone_number || null,
           birth_date: completeProfile.profile?.birth_date || null,

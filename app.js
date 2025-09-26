@@ -26,8 +26,7 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Middleware para servir archivos estáticos (imágenes de eventos)
-app.use('/uploads', express.static('uploads'));
+// Middleware para servir archivos estáticos - REMOVIDO: Ahora usamos Cloudinary
 
 // Logging básico
 app.use((req, res, next) => {
@@ -108,7 +107,7 @@ const startServer = async () => {
       console.log(`🔐 Auth: http://localhost:${PORT}/api/auth`);
       console.log(`🎯 Events: http://localhost:${PORT}/api/events`);
       console.log(`👤 Profile: http://localhost:${PORT}/api/auth/profile`);
-      console.log(`📁 Uploads: http://localhost:${PORT}/uploads`);
+      console.log(`☁️ Cloudinary: Imágenes en CDN global`);
       console.log(`📚 Swagger: http://localhost:${PORT}/api/docs`);
     });
   } catch (error) {

@@ -1,10 +1,3 @@
--- Esquema consolidado de base de datos (mínimo necesario)
--- Ejecutar con: psql -U postgres -d stemic_db -f src/config/migrations/000_schema.sql
-
--- ===============================
--- TIPOS ENUM NECESARIOS
--- ===============================
-
 -- Género para perfiles
 DO $$ BEGIN
   CREATE TYPE gender_type AS ENUM ('masculino', 'femenino', 'otro', 'prefiero_no_decir');
@@ -54,7 +47,6 @@ CREATE TABLE IF NOT EXISTS public.users (
   correo VARCHAR(255) UNIQUE NOT NULL,
   password VARCHAR(255) NULL,
   google_id VARCHAR(255) UNIQUE NULL,
-  avatar_url VARCHAR(500) NULL,
   rol VARCHAR(50) DEFAULT 'usuario' NOT NULL,
   password_reset_token VARCHAR(255) NULL,
   password_reset_expires TIMESTAMPTZ NULL,
@@ -68,6 +60,9 @@ CREATE TABLE IF NOT EXISTS public.users (
   CONSTRAINT users_password_or_google CHECK (
     (password IS NOT NULL AND google_id IS NULL) OR 
     (password IS NULL AND google_id IS NOT NULL)
+  ),
+  CONSTRAINT users_rol_valid CHECK (
+    rol IN ('usuario', 'organizador', 'admin')
   )
 );
 
@@ -90,6 +85,7 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL UNIQUE,
+  avatar_url VARCHAR(500) NULL,
   gender gender_type NULL,
   phone_number VARCHAR(20) NULL,
   birth_date DATE NULL,
@@ -127,6 +123,51 @@ DO $$ BEGIN
     ADD CONSTRAINT fk_profiles_user_id FOREIGN KEY (user_id)
     REFERENCES public.users(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- ===============================
+-- MIGRACIÓN DE DATOS EXISTENTES
+-- ===============================
+
+-- Migrar avatar_url de users a profiles (si existe la columna en users)
+DO $$ 
+BEGIN
+  -- Verificar si la columna avatar_url existe en users
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'users' 
+    AND column_name = 'avatar_url' 
+    AND table_schema = 'public'
+  ) THEN
+    
+    -- Migrar datos existentes de users.avatar_url a profiles.avatar_url
+    -- Solo migrar si el perfil ya existe
+    UPDATE profiles SET avatar_url = u.avatar_url 
+    FROM users u 
+    WHERE profiles.user_id = u.id 
+    AND u.avatar_url IS NOT NULL 
+    AND u.avatar_url != '';
+    
+    -- Crear perfiles automáticamente para usuarios de Google que tienen avatar pero no perfil
+    INSERT INTO profiles (user_id, avatar_url, created_at, updated_at)
+    SELECT u.id, u.avatar_url, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+    FROM users u
+    LEFT JOIN profiles p ON u.id = p.user_id
+    WHERE u.avatar_url IS NOT NULL 
+    AND u.avatar_url != ''
+    AND p.user_id IS NULL;
+    
+    -- Eliminar columna avatar_url de users
+    ALTER TABLE users DROP COLUMN avatar_url;
+    
+    RAISE NOTICE 'Migración de avatar_url completada: movido de users a profiles';
+    
+  ELSE
+    RAISE NOTICE 'La columna avatar_url no existe en users, migración no necesaria';
+  END IF;
+  
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'Error durante migración de avatar_url: %', SQLERRM;
+END $$;
 
 -- ===============================
 -- TABLA: refresh_tokens
@@ -225,7 +266,6 @@ COMMENT ON COLUMN public.users.nombre IS 'Nombre completo del usuario';
 COMMENT ON COLUMN public.users.correo IS 'Correo electrónico único del usuario';
 COMMENT ON COLUMN public.users.password IS 'Hash de la contraseña (NULL para usuarios de Google)';
 COMMENT ON COLUMN public.users.google_id IS 'ID de Google para autenticación OAuth';
-COMMENT ON COLUMN public.users.avatar_url IS 'URL del avatar del usuario';
 COMMENT ON COLUMN public.users.rol IS 'Rol del usuario en el sistema';
 
 -- Comentarios para profiles
@@ -235,6 +275,7 @@ COMMENT ON COLUMN public.profiles.gender IS 'Género del usuario';
 COMMENT ON COLUMN public.profiles.phone_number IS 'Número telefónico del usuario';
 COMMENT ON COLUMN public.profiles.birth_date IS 'Fecha de nacimiento del usuario';
 COMMENT ON COLUMN public.profiles.description IS 'Descripción personal del usuario (máx. 1000 caracteres)';
+COMMENT ON COLUMN public.profiles.avatar_url IS 'URL del avatar del usuario';
 COMMENT ON COLUMN public.profiles.interests IS 'Array de intereses basados en tags de eventos';
 
 -- Comentarios para refresh_tokens
@@ -251,3 +292,68 @@ COMMENT ON COLUMN public.eventos.duracion IS 'Duración del evento (texto, ej: 2
 COMMENT ON COLUMN public.eventos.skills IS 'Array de skills (valores UI)';
 COMMENT ON COLUMN public.eventos.tags IS 'Array de tags';
 COMMENT ON COLUMN public.eventos.modalidad IS 'Modalidad del evento';
+
+-- ===============================
+-- USUARIOS DE PRUEBA CON DIFERENTES ROLES
+-- ===============================
+
+-- Insertar usuarios de prueba (solo si no existen)
+DO $$ BEGIN
+
+  -- Usuario con rol 'usuario' (no puede crear eventos)
+  INSERT INTO public.users (
+    id, 
+    nombre, 
+    correo, 
+    password,
+    rol, 
+    created_at
+  ) VALUES (
+    '11111111-1111-1111-1111-111111111111',
+    'Usuario Normal',
+    'usuario@test.com',
+    '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', -- password
+    'usuario',
+    CURRENT_TIMESTAMP
+  ) ON CONFLICT (correo) DO NOTHING;
+
+  -- Usuario con rol 'organizador' (puede crear eventos)
+  INSERT INTO public.users (
+    id, 
+    nombre, 
+    correo, 
+    password,
+    rol, 
+    created_at
+  ) VALUES (
+    '22222222-2222-2222-2222-222222222222',
+    'Organizador Test',
+    'organizador@test.com',
+    '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', -- password
+    'organizador',
+    CURRENT_TIMESTAMP
+  ) ON CONFLICT (correo) DO NOTHING;
+
+  -- Usuario con rol 'admin' (puede crear eventos)
+  INSERT INTO public.users (
+    id, 
+    nombre, 
+    correo, 
+    password,
+    rol, 
+    created_at
+  ) VALUES (
+    '33333333-3333-3333-3333-333333333333',
+    'Admin Test',
+    'admin@test.com',
+    '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', -- password
+    'admin',
+    CURRENT_TIMESTAMP
+  ) ON CONFLICT (correo) DO NOTHING;
+
+  RAISE NOTICE 'Usuarios de prueba creados:';
+  RAISE NOTICE '- usuario@test.com (password: password) - ROL: usuario';
+  RAISE NOTICE '- organizador@test.com (password: password) - ROL: organizador';
+  RAISE NOTICE '- admin@test.com (password: password) - ROL: admin';
+
+END $$;

@@ -16,7 +16,6 @@ class User {
     this.correo = userData.correo;
     this.password = userData.password;
     this.google_id = userData.google_id;
-    this.avatar_url = userData.avatar_url;
     this.rol = userData.rol;
     this.created_at = userData.created_at;
     this.updated_at = userData.updated_at;
@@ -76,18 +75,25 @@ class User {
         `INSERT INTO users (
           nombre, 
           correo, 
-          google_id, 
-          avatar_url,
+          google_id,
           rol,
           created_at,
           updated_at
         ) 
-        VALUES ($1, $2, $3, $4, 'usuario', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) 
+        VALUES ($1, $2, $3, 'usuario', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) 
         RETURNING *`,
-        [nombre, correo, google_id, avatar_url]
+        [nombre, correo, google_id]
       );
+
+      const user = new User(result.rows[0]);
+
+      // Si viene avatar_url de Google, crear perfil inicial con avatar
+      if (avatar_url) {
+        const Profile = require('./Profile');
+        await Profile.createOrUpdate(user.id, { avatar_url });
+      }
       
-      return new User(result.rows[0]);
+      return user;
     } catch (error) {
       if (error.code === '23505') {
         throw new Error('El correo electrónico ya está registrado');
@@ -138,7 +144,6 @@ class User {
       id: this.id,
       nombre: this.nombre,
       correo: this.correo,
-      avatar_url: this.avatar_url,
       rol: this.rol,
       created_at: this.created_at
     };
