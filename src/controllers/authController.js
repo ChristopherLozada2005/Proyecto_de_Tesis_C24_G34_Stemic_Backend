@@ -217,14 +217,40 @@ class AuthController {
     }
   }
 
-  // Obtener perfil (requiere auth)
+  // Obtener perfil completo (requiere auth)
   static async getProfile(req, res) {
     try {
-      const user = req.user; // Del middleware
+      const Profile = require('../models/Profile');
+      const userId = req.user.id;
+      
+      const profileData = await Profile.getCompleteProfile(userId);
+      
+      if (!profileData) {
+        return res.status(404).json({
+          success: false,
+          message: 'Usuario no encontrado'
+        });
+      }
 
       res.json({
         success: true,
-        data: { user: user.toJSON() }
+        data: {
+          // Datos del usuario (desde la tabla users)
+          nombre: profileData.user.nombre,
+          correo: profileData.user.correo,
+          avatar_url: profileData.user.avatar_url,
+          
+          // Datos del perfil (desde la tabla profiles)
+          gender: profileData.profile?.gender || null,
+          phone_number: profileData.profile?.phone_number || null,
+          birth_date: profileData.profile?.birth_date || null,
+          description: profileData.profile?.description || null,
+          interests: profileData.profile?.interests || [],
+          
+          // Metadatos
+          user_created_at: profileData.user.created_at,
+          profile_updated_at: profileData.profile?.updated_at || null
+        }
       });
 
     } catch (error) {

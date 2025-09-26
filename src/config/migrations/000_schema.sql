@@ -5,6 +5,11 @@
 -- TIPOS ENUM NECESARIOS
 -- ===============================
 
+-- Género para perfiles
+DO $$ BEGIN
+  CREATE TYPE gender_type AS ENUM ('masculino', 'femenino', 'otro', 'prefiero_no_decir');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
 -- Modalidades
 DO $$ BEGIN
   CREATE TYPE modalidad_evento AS ENUM ('virtual', 'presencial', 'hibrido');
@@ -38,6 +43,116 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+-- ===============================
+-- TABLA: users
+-- ===============================
+
+CREATE TABLE IF NOT EXISTS public.users (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  nombre VARCHAR(255) NOT NULL,
+  correo VARCHAR(255) UNIQUE NOT NULL,
+  password VARCHAR(255) NULL,
+  google_id VARCHAR(255) UNIQUE NULL,
+  avatar_url VARCHAR(500) NULL,
+  rol VARCHAR(50) DEFAULT 'usuario' NOT NULL,
+  password_reset_token VARCHAR(255) NULL,
+  password_reset_expires TIMESTAMPTZ NULL,
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+
+  CONSTRAINT users_correo_format CHECK (
+    correo ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'
+  ),
+  CONSTRAINT users_nombre_not_empty CHECK (LENGTH(TRIM(nombre)) > 0),
+  CONSTRAINT users_password_or_google CHECK (
+    (password IS NOT NULL AND google_id IS NULL) OR 
+    (password IS NULL AND google_id IS NOT NULL)
+  )
+);
+
+-- Índices para users
+CREATE INDEX IF NOT EXISTS idx_users_correo ON public.users (correo);
+CREATE INDEX IF NOT EXISTS idx_users_google_id ON public.users (google_id);
+CREATE INDEX IF NOT EXISTS idx_users_password_reset_token ON public.users (password_reset_token);
+
+-- Trigger updated_at para users
+DO $$ BEGIN
+  CREATE TRIGGER update_users_updated_at
+    BEFORE UPDATE ON public.users
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- ===============================
+-- TABLA: profiles
+-- ===============================
+
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL UNIQUE,
+  gender gender_type NULL,
+  phone_number VARCHAR(20) NULL,
+  birth_date DATE NULL,
+  description TEXT NULL,
+  interests tag_evento[] DEFAULT '{}'::tag_evento[] NULL,
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+
+  CONSTRAINT profiles_phone_format CHECK (
+    phone_number IS NULL OR phone_number ~ '^[\+]?[0-9\s\-\(\)]{7,20}$'
+  ),
+  CONSTRAINT profiles_birth_date_valid CHECK (
+    birth_date IS NULL OR birth_date <= CURRENT_DATE - INTERVAL '13 years'
+  ),
+  CONSTRAINT profiles_description_length CHECK (
+    description IS NULL OR LENGTH(description) <= 1000
+  )
+);
+
+-- Índices para profiles
+CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON public.profiles (user_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_gender ON public.profiles (gender);
+CREATE INDEX IF NOT EXISTS idx_profiles_interests ON public.profiles USING GIN (interests);
+
+-- Trigger updated_at para profiles
+DO $$ BEGIN
+  CREATE TRIGGER update_profiles_updated_at
+    BEFORE UPDATE ON public.profiles
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- FK para profiles
+DO $$ BEGIN
+  ALTER TABLE public.profiles
+    ADD CONSTRAINT fk_profiles_user_id FOREIGN KEY (user_id)
+    REFERENCES public.users(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- ===============================
+-- TABLA: refresh_tokens
+-- ===============================
+
+CREATE TABLE IF NOT EXISTS public.refresh_tokens (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL,
+  token VARCHAR(500) UNIQUE NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+
+  CONSTRAINT refresh_tokens_expires_future CHECK (expires_at > CURRENT_TIMESTAMP)
+);
+
+-- Índices para refresh_tokens
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON public.refresh_tokens (user_id);
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token ON public.refresh_tokens (token);
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_expires_at ON public.refresh_tokens (expires_at);
+
+-- FK para refresh_tokens
+DO $$ BEGIN
+  ALTER TABLE public.refresh_tokens
+    ADD CONSTRAINT fk_refresh_tokens_user_id FOREIGN KEY (user_id)
+    REFERENCES public.users(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ===============================
 -- TABLA: eventos
@@ -100,7 +215,35 @@ DO $$ BEGIN
     REFERENCES public.users(id) ON DELETE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
--- Comentarios
+-- ===============================
+-- COMENTARIOS
+-- ===============================
+
+-- Comentarios para users
+COMMENT ON TABLE public.users IS 'Tabla de usuarios del sistema';
+COMMENT ON COLUMN public.users.nombre IS 'Nombre completo del usuario';
+COMMENT ON COLUMN public.users.correo IS 'Correo electrónico único del usuario';
+COMMENT ON COLUMN public.users.password IS 'Hash de la contraseña (NULL para usuarios de Google)';
+COMMENT ON COLUMN public.users.google_id IS 'ID de Google para autenticación OAuth';
+COMMENT ON COLUMN public.users.avatar_url IS 'URL del avatar del usuario';
+COMMENT ON COLUMN public.users.rol IS 'Rol del usuario en el sistema';
+
+-- Comentarios para profiles
+COMMENT ON TABLE public.profiles IS 'Tabla de perfiles extendidos de usuarios';
+COMMENT ON COLUMN public.profiles.user_id IS 'Referencia al usuario (relación 1:1)';
+COMMENT ON COLUMN public.profiles.gender IS 'Género del usuario';
+COMMENT ON COLUMN public.profiles.phone_number IS 'Número telefónico del usuario';
+COMMENT ON COLUMN public.profiles.birth_date IS 'Fecha de nacimiento del usuario';
+COMMENT ON COLUMN public.profiles.description IS 'Descripción personal del usuario (máx. 1000 caracteres)';
+COMMENT ON COLUMN public.profiles.interests IS 'Array de intereses basados en tags de eventos';
+
+-- Comentarios para refresh_tokens
+COMMENT ON TABLE public.refresh_tokens IS 'Tabla de tokens de actualización para autenticación';
+COMMENT ON COLUMN public.refresh_tokens.user_id IS 'Referencia al usuario propietario del token';
+COMMENT ON COLUMN public.refresh_tokens.token IS 'Token de actualización único';
+COMMENT ON COLUMN public.refresh_tokens.expires_at IS 'Fecha de expiración del token';
+
+-- Comentarios para eventos
 COMMENT ON TABLE public.eventos IS 'Tabla de eventos';
 COMMENT ON COLUMN public.eventos.titulo IS 'Título del evento';
 COMMENT ON COLUMN public.eventos.descripcion IS 'Descripción del evento';

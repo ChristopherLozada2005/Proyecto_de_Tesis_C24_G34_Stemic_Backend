@@ -60,6 +60,11 @@ app.get('/', (req, res) => {
         create: 'POST /api/events',
         my_events: 'GET /api/events/user/my-events',
         options: 'GET /api/events/options'
+      },
+      profile: {
+        get: 'GET /api/auth/profile',
+        update: 'PUT /api/auth/profile',
+        options: 'GET /api/auth/profile/options'
       }
     }
   });
@@ -102,6 +107,7 @@ const startServer = async () => {
       console.log(`📱 API: http://localhost:${PORT}`);
       console.log(`🔐 Auth: http://localhost:${PORT}/api/auth`);
       console.log(`🎯 Events: http://localhost:${PORT}/api/events`);
+      console.log(`👤 Profile: http://localhost:${PORT}/api/auth/profile`);
       console.log(`📁 Uploads: http://localhost:${PORT}/uploads`);
       console.log(`📚 Swagger: http://localhost:${PORT}/api/docs`);
     });

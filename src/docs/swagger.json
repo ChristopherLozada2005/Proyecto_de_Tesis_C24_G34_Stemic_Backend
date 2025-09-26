@@ -182,11 +182,206 @@
     },
     "/api/auth/profile": {
       "get": {
-        "summary": "Obtener perfil del usuario autenticado",
-        "tags": ["Auth"],
+        "summary": "Obtener perfil completo del usuario autenticado",
+        "tags": ["Auth - Profile"],
         "security": [{ "bearerAuth": [] }],
         "responses": {
-          "200": { "description": "Perfil obtenido correctamente" },
+          "200": {
+            "description": "Perfil obtenido correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "nombre": { "type": "string" },
+                        "correo": { "type": "string", "format": "email" },
+                        "avatar_url": { "type": "string", "nullable": true },
+                        "gender": { "type": "string", "enum": ["masculino", "femenino", "otro", "prefiero_no_decir"], "nullable": true },
+                        "phone_number": { "type": "string", "nullable": true },
+                        "birth_date": { "type": "string", "format": "date", "nullable": true },
+                        "description": { "type": "string", "nullable": true },
+                        "interests": { "type": "array", "items": { "type": "string", "enum": ["ia", "tech", "networking"] } },
+                        "user_created_at": { "type": "string", "format": "date-time" },
+                        "profile_updated_at": { "type": "string", "format": "date-time", "nullable": true }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "nombre": "Juan Pérez",
+                    "correo": "juan@mail.com",
+                    "avatar_url": "https://example.com/avatar.jpg",
+                    "gender": "masculino",
+                    "phone_number": "+502 1234-5678",
+                    "birth_date": "1995-06-15",
+                    "description": "Desarrollador apasionado por la tecnología y la innovación.",
+                    "interests": ["ia", "tech"],
+                    "user_created_at": "2024-01-15T10:30:00Z",
+                    "profile_updated_at": "2024-02-20T14:45:00Z"
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "No autorizado" },
+          "404": { "description": "Usuario no encontrado" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      },
+      "put": {
+        "summary": "Actualizar perfil del usuario autenticado",
+        "tags": ["Auth - Profile"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "gender": { 
+                    "type": "string", 
+                    "enum": ["masculino", "femenino", "otro", "prefiero_no_decir"],
+                    "nullable": true
+                  },
+                  "phone_number": { 
+                    "type": "string", 
+                    "pattern": "^[\\+]?[0-9\\s\\-\\(\\)]{7,20}$",
+                    "nullable": true,
+                    "description": "Número telefónico (7-20 caracteres, puede incluir +, espacios, guiones y paréntesis)"
+                  },
+                  "birth_date": { 
+                    "type": "string", 
+                    "format": "date",
+                    "nullable": true,
+                    "description": "Fecha de nacimiento (mínimo 13 años)"
+                  },
+                  "description": { 
+                    "type": "string", 
+                    "maxLength": 1000,
+                    "nullable": true,
+                    "description": "Descripción personal (máximo 1000 caracteres)"
+                  },
+                  "interests": { 
+                    "type": "array", 
+                    "items": { "type": "string", "enum": ["ia", "tech", "networking"] },
+                    "uniqueItems": true,
+                    "description": "Intereses del usuario basados en tags de eventos"
+                  }
+                }
+              },
+              "example": {
+                "gender": "masculino",
+                "phone_number": "+502 1234-5678",
+                "birth_date": "1995-06-15",
+                "description": "Desarrollador apasionado por la tecnología y la innovación. Me encanta aprender sobre nuevas tendencias y participar en eventos tech.",
+                "interests": ["ia", "tech"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Perfil actualizado exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "nombre": { "type": "string" },
+                        "correo": { "type": "string", "format": "email" },
+                        "avatar_url": { "type": "string", "nullable": true },
+                        "gender": { "type": "string", "nullable": true },
+                        "phone_number": { "type": "string", "nullable": true },
+                        "birth_date": { "type": "string", "format": "date", "nullable": true },
+                        "description": { "type": "string", "nullable": true },
+                        "interests": { "type": "array", "items": { "type": "string" } },
+                        "user_created_at": { "type": "string", "format": "date-time" },
+                        "profile_updated_at": { "type": "string", "format": "date-time", "nullable": true }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Errores de validación" },
+          "401": { "description": "No autorizado" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
+    },
+    "/api/auth/profile/options": {
+      "get": {
+        "summary": "Obtener opciones disponibles para el perfil",
+        "tags": ["Auth - Profile"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Opciones obtenidas correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "genders": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "value": { "type": "string" },
+                              "label": { "type": "string" }
+                            }
+                          }
+                        },
+                        "interests": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "value": { "type": "string" },
+                              "label": { "type": "string" }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "genders": [
+                      { "value": "masculino", "label": "Masculino" },
+                      { "value": "femenino", "label": "Femenino" },
+                      { "value": "otro", "label": "Otro" },
+                      { "value": "prefiero_no_decir", "label": "Prefiero no decir" }
+                    ],
+                    "interests": [
+                      { "value": "ia", "label": "Inteligencia Artificial" },
+                      { "value": "tech", "label": "Tecnología" },
+                      { "value": "networking", "label": "Networking" }
+                    ]
+                  }
+                }
+              }
+            }
+          },
           "401": { "description": "No autorizado" },
           "500": { "description": "Error interno del servidor" }
         }

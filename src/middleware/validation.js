@@ -468,11 +468,107 @@ const validateEventFilters = (req, res, next) => {
   next();
 };
 
+// Validación para perfil de usuario
+const validateProfile = (req, res, next) => {
+  const { gender, phone_number, birth_date, description, interests } = req.body;
+  const errors = [];
+
+  // Validar género si se proporciona
+  if (gender && !['masculino', 'femenino', 'otro', 'prefiero_no_decir'].includes(gender)) {
+    errors.push('Género inválido. Opciones válidas: masculino, femenino, otro, prefiero_no_decir');
+  }
+
+  // Validar número telefónico si se proporciona
+  if (phone_number !== undefined && phone_number !== null && phone_number !== '') {
+    const phoneRegex = /^[\+]?[0-9\s\-\(\)]{7,20}$/;
+    if (!phoneRegex.test(phone_number.trim())) {
+      errors.push('Formato de número telefónico inválido. Debe contener entre 7 y 20 dígitos, puede incluir +, espacios, guiones y paréntesis');
+    }
+  }
+
+  // Validar fecha de nacimiento si se proporciona
+  if (birth_date !== undefined && birth_date !== null && birth_date !== '') {
+    const birthDate = new Date(birth_date);
+    const today = new Date();
+    
+    if (isNaN(birthDate.getTime())) {
+      errors.push('Formato de fecha de nacimiento inválido');
+    } else {
+      const age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      
+      if (age < 13) {
+        errors.push('Debes tener al menos 13 años para usar esta plataforma');
+      }
+      
+      if (age > 120) {
+        errors.push('Fecha de nacimiento inválida');
+      }
+    }
+  }
+
+  // Validar descripción si se proporciona
+  if (description !== undefined && description !== null && description !== '') {
+    if (typeof description !== 'string') {
+      errors.push('La descripción debe ser texto');
+    } else if (description.trim().length > 1000) {
+      errors.push('La descripción no puede exceder 1000 caracteres');
+    }
+  }
+
+  // Validar intereses si se proporcionan
+  if (interests !== undefined && interests !== null) {
+    let interestsArray = interests;
+    
+    // Si viene como string, convertir a array
+    if (typeof interests === 'string') {
+      try {
+        interestsArray = JSON.parse(interests);
+      } catch (e) {
+        interestsArray = interests.split(',').map(i => i.trim()).filter(i => i.length > 0);
+      }
+    }
+    
+    if (!Array.isArray(interestsArray)) {
+      errors.push('Los intereses deben ser un array');
+    } else {
+      const validInterests = ['ia', 'tech', 'networking'];
+      const invalidInterests = interestsArray.filter(interest => !validInterests.includes(interest.trim().toLowerCase()));
+      
+      if (invalidInterests.length > 0) {
+        errors.push(`Intereses inválidos: ${invalidInterests.join(', ')}. Intereses válidos: ${validInterests.join(', ')}`);
+      } else {
+        // Limpiar, convertir a minúsculas y eliminar duplicados
+        req.body.interests = [...new Set(interestsArray.map(i => i.trim().toLowerCase()))];
+      }
+    }
+  }
+
+  if (errors.length > 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'Errores de validación en el perfil',
+      errors
+    });
+  }
+
+  // Limpiar datos
+  if (phone_number) req.body.phone_number = phone_number.trim();
+  if (description) req.body.description = description.trim();
+
+  next();
+};
+
 module.exports = {
   validateRegister,
   validateLogin,
   validateGoogleToken,
   validateEvent,
   validateEventUpdate,
-  validateEventFilters
+  validateEventFilters,
+  validateProfile
 };
