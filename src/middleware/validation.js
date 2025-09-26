@@ -432,12 +432,24 @@ const validateEventFilters = (req, res, next) => {
   }
 
   if (tags && typeof tags === 'string') {
-    const tagsValidos = ['IA', 'TECH', 'NETWORKING'];
+    // Mapeo flexible: acepta tanto mayúsculas como minúsculas
+    const tagsMapping = {
+      'IA': 'ia',
+      'ia': 'ia',
+      'TECH': 'tech', 
+      'tech': 'tech',
+      'NETWORKING': 'networking',
+      'networking': 'networking'
+    };
+    
     const tagsArray = tags.split(',');
-    const tagsInvalidos = tagsArray.filter(tag => !tagsValidos.includes(tag.trim()));
+    const tagsInvalidos = tagsArray.filter(tag => !tagsMapping[tag.trim()]);
     
     if (tagsInvalidos.length > 0) {
-      errors.push(`Tags de filtro inválidos: ${tagsInvalidos.join(', ')}`);
+      errors.push(`Tags de filtro inválidos: ${tagsInvalidos.join(', ')}. Tags válidos: ia, tech, networking (o IA, TECH, NETWORKING)`);
+    } else {
+      // Convertir a valores de BD (minúsculas) en req.query para el controlador
+      req.query.tags = tagsArray.map(tag => tagsMapping[tag.trim()]).join(',');
     }
   }
 

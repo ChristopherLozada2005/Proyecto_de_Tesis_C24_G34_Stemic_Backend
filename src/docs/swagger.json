@@ -407,7 +407,38 @@
           {
             "name": "modalidad",
             "in": "query",
-            "schema": { "type": "string", "enum": ["virtual", "presencial", "hibrido"] }
+            "schema": { "type": "string", "enum": ["virtual", "presencial", "hibrido"] },
+            "description": "Filtrar por modalidad del evento"
+          },
+          {
+            "name": "tags",
+            "in": "query",
+            "schema": { "type": "string" },
+            "description": "Filtrar por categorías (tags): ia,tech,networking (separados por comas)"
+          },
+          {
+            "name": "skills",
+            "in": "query", 
+            "schema": { "type": "string" },
+            "description": "Filtrar por skills: Liderazgo,Comunicacion (separados por comas)"
+          },
+          {
+            "name": "fecha_desde",
+            "in": "query",
+            "schema": { "type": "string", "format": "date" },
+            "description": "Fecha inicial para filtro de rango (YYYY-MM-DD)"
+          },
+          {
+            "name": "fecha_hasta", 
+            "in": "query",
+            "schema": { "type": "string", "format": "date" },
+            "description": "Fecha final para filtro de rango (YYYY-MM-DD)"
+          },
+          {
+            "name": "requiere_postulacion",
+            "in": "query",
+            "schema": { "type": "boolean" },
+            "description": "Filtrar por eventos que requieren postulación"
           },
           {
             "name": "search",
@@ -418,16 +449,46 @@
           {
             "name": "page",
             "in": "query",
-            "schema": { "type": "integer", "default": 1 }
+            "schema": { "type": "integer", "default": 1, "minimum": 1 },
+            "description": "Número de página para paginación"
           },
           {
             "name": "limit",
             "in": "query",
-            "schema": { "type": "integer", "default": 10, "maximum": 100 }
+            "schema": { "type": "integer", "default": 10, "minimum": 1, "maximum": 100 },
+            "description": "Cantidad de eventos por página"
           }
         ],
         "responses": {
-          "200": { "description": "Eventos obtenidos correctamente" }
+          "200": { 
+            "description": "Eventos obtenidos correctamente",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "todos_los_eventos": {
+                    "summary": "Obtener todos los eventos",
+                    "value": "/api/events/public"
+                  },
+                  "filtro_modalidad": {
+                    "summary": "Solo eventos virtuales",
+                    "value": "/api/events/public?modalidad=virtual"
+                  },
+                  "filtro_categorias": {
+                    "summary": "Eventos de IA y Tech",
+                    "value": "/api/events/public?tags=ia,tech"
+                  },
+                  "proximos_7_dias": {
+                    "summary": "Eventos próximos 7 días",
+                    "value": "/api/events/public?fecha_desde=2024-01-01&fecha_hasta=2024-01-07"
+                  },
+                  "filtros_combinados": {
+                    "summary": "Virtual + IA + próximos días",
+                    "value": "/api/events/public?modalidad=virtual&tags=ia&fecha_desde=2024-01-01&fecha_hasta=2024-01-07"
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },
