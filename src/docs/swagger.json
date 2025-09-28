@@ -254,9 +254,9 @@
           "required": true,
           "content": {
             "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "properties": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
                   "avatar": {
                     "type": "string",
                     "format": "binary",
@@ -289,8 +289,8 @@
             },
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
+                      "type": "object",
+                      "properties": {
                   "avatar_url": { 
                     "type": "string", 
                     "format": "uri",
@@ -312,7 +312,7 @@
                     "type": "string"
                   },
                   "interests": { 
-                    "type": "array", 
+                          "type": "array",
                     "items": { "type": "string", "enum": ["ia", "tech", "networking"] }
                   }
                 }
@@ -324,10 +324,10 @@
                 "birth_date": "1995-06-15",
                 "description": "Desarrollador apasionado por la tecnología",
                 "interests": ["ia", "tech"]
-              }
-            }
-          }
-        },
+                      }
+                    }
+                  }
+                },
         "responses": {
           "200": { "description": "Perfil actualizado exitosamente" },
           "400": { "description": "Errores de validación" },
@@ -418,7 +418,7 @@
           },
           {
             "name": "skills",
-            "in": "query", 
+            "in": "query",
             "schema": { "type": "string" },
             "description": "Filtrar por skills: Liderazgo,Comunicacion (separados por comas)"
           },
@@ -429,7 +429,7 @@
             "description": "Fecha inicial para filtro de rango (YYYY-MM-DD)"
           },
           {
-            "name": "fecha_hasta", 
+            "name": "fecha_hasta",
             "in": "query",
             "schema": { "type": "string", "format": "date" },
             "description": "Fecha final para filtro de rango (YYYY-MM-DD)"
@@ -460,7 +460,7 @@
           }
         ],
         "responses": {
-          "200": { 
+          "200": {
             "description": "Eventos obtenidos correctamente",
             "content": {
               "application/json": {
@@ -484,11 +484,11 @@
                   "filtros_combinados": {
                     "summary": "Virtual + IA + próximos días",
                     "value": "/api/events/public?modalidad=virtual&tags=ia&fecha_desde=2024-01-01&fecha_hasta=2024-01-07"
+                    }
                   }
                 }
               }
             }
-          }
         }
       }
     },
@@ -532,10 +532,10 @@
                   "requiere_postulacion": { "type": "boolean", "default": false }
                 },
                 "required": ["titulo", "descripcion", "fecha_aplicacion_prioritaria", "fecha_aplicacion_general", "duracion", "correo_contacto", "modalidad", "fecha_hora"]
-              }
-            }
           }
-        },
+        }
+      }
+    },
         "responses": {
           "201": { "description": "Evento creado exitosamente" },
           "400": { "description": "Errores de validación" },
@@ -1102,14 +1102,14 @@
                 "required": ["carrera_especialidad", "motivacion"],
                 "properties": {
                   "carrera_especialidad": {
-                    "type": "string",
+                    "type": "string", 
                     "minLength": 2,
                     "maxLength": 100,
                     "description": "Carrera o especialidad del postulante",
                     "example": "Ingeniería de Sistemas"
                   },
                   "motivacion": {
-                    "type": "string",
+                      "type": "string",
                     "minLength": 10,
                     "maxLength": 1000,
                     "description": "Motivación para unirse a LEAD at TECSUP",
@@ -1210,10 +1210,10 @@
           "200": {
             "description": "Postulaciones obtenidas exitosamente",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
                     "success": { "type": "boolean" },
                     "data": {
                       "type": "array",
@@ -1244,10 +1244,10 @@
                               "nombre": { "type": "string" },
                               "correo": { "type": "string" }
                             }
-                          }
-                        }
-                      }
-                    },
+              }
+            }
+          }
+        },
                     "pagination": {
                       "type": "object",
                       "properties": {
@@ -1731,6 +1731,682 @@
           },
           "401": { "description": "Token no válido o expirado" },
           "403": { "description": "Acceso denegado - Se requiere rol admin" }
+        }
+      }
+    },
+    "/api/alianzas/activas": {
+      "get": {
+        "tags": ["Alianzas - Público"],
+        "summary": "Obtener alianzas activas",
+        "description": "Obtiene todas las alianzas activas (endpoint público)",
+        "responses": {
+          "200": {
+            "description": "Alianzas activas obtenidas exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string", "format": "uuid" },
+                          "nombre": { "type": "string" },
+                          "descripcion": { "type": "string" },
+                          "logo_url": { "type": "string" },
+                          "sitio_web": { "type": "string" },
+                          "activo": { "type": "boolean" },
+                          "created_at": { "type": "string", "format": "date-time" },
+                          "updated_at": { "type": "string", "format": "date-time" }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "data": [
+                    {
+                      "id": "123e4567-e89b-12d3-a456-426614174000",
+                      "nombre": "TECSUP",
+                      "descripcion": "Institución educativa líder en tecnología e ingeniería",
+                      "logo_url": "https://via.placeholder.com/150x150?text=TECSUP",
+                      "sitio_web": "https://www.tecsup.edu.pe",
+                      "activo": true,
+                      "created_at": "2024-01-01T10:00:00Z",
+                      "updated_at": "2024-01-01T10:00:00Z"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/alianzas": {
+      "get": {
+        "tags": ["Alianzas - Admin"],
+        "summary": "Obtener todas las alianzas",
+        "description": "Obtiene todas las alianzas con filtros (solo admins)",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "default": 1 },
+            "description": "Número de página"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 10 },
+            "description": "Elementos por página"
+          },
+          {
+            "name": "activo",
+            "in": "query",
+            "schema": { "type": "boolean" },
+            "description": "Filtrar por estado activo"
+          },
+          {
+            "name": "nombre",
+            "in": "query",
+            "schema": { "type": "string" },
+            "description": "Filtrar por nombre"
+          },
+          {
+            "name": "descripcion",
+            "in": "query",
+            "schema": { "type": "string" },
+            "description": "Filtrar por descripción"
+          },
+          {
+            "name": "fecha_desde",
+            "in": "query",
+            "schema": { "type": "string", "format": "date" },
+            "description": "Filtrar desde fecha (YYYY-MM-DD)"
+          },
+          {
+            "name": "fecha_hasta",
+            "in": "query",
+            "schema": { "type": "string", "format": "date" },
+            "description": "Filtrar hasta fecha (YYYY-MM-DD)"
+          }
+        ],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Alianzas obtenidas exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string", "format": "uuid" },
+                          "nombre": { "type": "string" },
+                          "descripcion": { "type": "string" },
+                          "logo_url": { "type": "string" },
+                          "sitio_web": { "type": "string" },
+                          "activo": { "type": "boolean" },
+                          "created_at": { "type": "string", "format": "date-time" },
+                          "updated_at": { "type": "string", "format": "date-time" }
+                        }
+                      }
+                    },
+                    "pagination": {
+                      "type": "object",
+                      "properties": {
+                        "page": { "type": "integer" },
+                        "limit": { "type": "integer" },
+                        "total": { "type": "integer" },
+                        "totalPages": { "type": "integer" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Parámetros de filtros inválidos" },
+          "401": { "description": "Token no válido o expirado" },
+          "403": { "description": "Acceso denegado - Se requiere rol admin" }
+        }
+      },
+      "post": {
+        "tags": ["Alianzas - Admin"],
+        "summary": "Crear nueva alianza",
+        "description": "Crea una nueva alianza (solo admins)",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["nombre", "descripcion"],
+                "properties": {
+                  "nombre": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100,
+                    "description": "Nombre de la organización o aliado",
+                    "example": "Microsoft"
+                  },
+                  "descripcion": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000,
+                    "description": "Descripción breve de la alianza",
+                    "example": "Colaboración en tecnologías cloud y desarrollo de software"
+                  },
+                  "logo": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Archivo de logo (JPEG, JPG, PNG, WebP, SVG) - Máximo 5MB"
+                  },
+                  "sitio_web": {
+                    "type": "string",
+                    "maxLength": 200,
+                    "description": "Sitio web del aliado (opcional)",
+                    "example": "https://www.microsoft.com"
+                  },
+                  "activo": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Indica si la alianza está activa"
+                  }
+                }
+              }
+            },
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["nombre", "descripcion"],
+                "properties": {
+                  "nombre": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100,
+                    "description": "Nombre de la organización o aliado",
+                    "example": "Microsoft"
+                  },
+                  "descripcion": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000,
+                    "description": "Descripción breve de la alianza",
+                    "example": "Colaboración en tecnologías cloud y desarrollo de software"
+                  },
+                  "logo_url": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "description": "URL del logo (si no se sube archivo)",
+                    "example": "https://res.cloudinary.com/cloud/image/upload/v123456/stemic/partners/logo.jpg"
+                  },
+                  "sitio_web": {
+                    "type": "string",
+                    "maxLength": 200,
+                    "description": "Sitio web del aliado (opcional)",
+                    "example": "https://www.microsoft.com"
+                  },
+                  "activo": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Indica si la alianza está activa"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Alianza creada exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string", "format": "uuid" },
+                        "nombre": { "type": "string" },
+                        "descripcion": { "type": "string" },
+                        "logo_url": { "type": "string" },
+                        "sitio_web": { "type": "string" },
+                        "activo": { "type": "boolean" },
+                        "created_at": { "type": "string", "format": "date-time" },
+                        "updated_at": { "type": "string", "format": "date-time" }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "Alianza creada exitosamente",
+                  "data": {
+                    "id": "123e4567-e89b-12d3-a456-426614174000",
+                    "nombre": "Microsoft",
+                    "descripcion": "Colaboración en tecnologías cloud y desarrollo de software",
+                    "logo_url": "https://via.placeholder.com/150x150?text=Microsoft",
+                    "sitio_web": "https://www.microsoft.com",
+                    "activo": true,
+                    "created_at": "2024-01-15T10:30:00Z",
+                    "updated_at": "2024-01-15T10:30:00Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Datos de alianza inválidos" },
+          "401": { "description": "Token no válido o expirado" },
+          "403": { "description": "Acceso denegado - Se requiere rol admin" },
+          "409": { "description": "Ya existe una alianza con ese nombre" }
+        }
+      }
+    },
+    "/api/alianzas/buscar": {
+      "get": {
+        "tags": ["Alianzas - Admin"],
+        "summary": "Buscar alianzas por nombre",
+        "description": "Busca alianzas por nombre para autocompletado (solo admins)",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "minLength": 2 },
+            "description": "Término de búsqueda"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 50, "default": 10 },
+            "description": "Límite de resultados"
+          }
+        ],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Resultados de búsqueda obtenidos exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string", "format": "uuid" },
+                          "nombre": { "type": "string" },
+                          "logo_url": { "type": "string" },
+                          "activo": { "type": "boolean" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Término de búsqueda inválido" },
+          "401": { "description": "Token no válido o expirado" },
+          "403": { "description": "Acceso denegado - Se requiere rol admin" }
+        }
+      }
+    },
+    "/api/alianzas/estadisticas": {
+      "get": {
+        "tags": ["Alianzas - Admin"],
+        "summary": "Obtener estadísticas de alianzas",
+        "description": "Obtiene estadísticas generales de las alianzas (solo admins)",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Estadísticas obtenidas exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "total_alianzas": { "type": "integer" },
+                        "alianzas_activas": { "type": "integer" },
+                        "alianzas_inactivas": { "type": "integer" },
+                        "primera_alianza": { "type": "string", "format": "date-time" },
+                        "ultima_alianza": { "type": "string", "format": "date-time" }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "total_alianzas": 15,
+                    "alianzas_activas": 12,
+                    "alianzas_inactivas": 3,
+                    "primera_alianza": "2024-01-01T10:00:00Z",
+                    "ultima_alianza": "2024-01-15T14:30:00Z"
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Token no válido o expirado" },
+          "403": { "description": "Acceso denegado - Se requiere rol admin" }
+        }
+      }
+    },
+    "/api/alianzas/{id}": {
+      "get": {
+        "tags": ["Alianzas - Admin"],
+        "summary": "Obtener alianza por ID",
+        "description": "Obtiene una alianza específica por ID (solo admins)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "ID de la alianza"
+          }
+        ],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Alianza obtenida exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string", "format": "uuid" },
+                        "nombre": { "type": "string" },
+                        "descripcion": { "type": "string" },
+                        "logo_url": { "type": "string" },
+                        "sitio_web": { "type": "string" },
+                        "activo": { "type": "boolean" },
+                        "created_at": { "type": "string", "format": "date-time" },
+                        "updated_at": { "type": "string", "format": "date-time" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Token no válido o expirado" },
+          "403": { "description": "Acceso denegado - Se requiere rol admin" },
+          "404": { "description": "Alianza no encontrada" }
+        }
+      },
+      "patch": {
+        "tags": ["Alianzas - Admin"],
+        "summary": "Actualizar alianza",
+        "description": "Actualiza una alianza existente (solo admins)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "ID de la alianza"
+          }
+        ],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nombre": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100,
+                    "description": "Nombre de la organización o aliado"
+                  },
+                  "descripcion": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000,
+                    "description": "Descripción breve de la alianza"
+                  },
+                  "logo": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Archivo de logo (JPEG, JPG, PNG, WebP, SVG) - Máximo 5MB"
+                  },
+                  "sitio_web": {
+                    "type": "string",
+                    "maxLength": 200,
+                    "description": "Sitio web del aliado"
+                  },
+                  "activo": {
+                    "type": "boolean",
+                    "description": "Indica si la alianza está activa"
+                  }
+                }
+              }
+            },
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nombre": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100,
+                    "description": "Nombre de la organización o aliado"
+                  },
+                  "descripcion": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000,
+                    "description": "Descripción breve de la alianza"
+                  },
+                  "logo_url": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "description": "URL del logo (si no se sube archivo)"
+                  },
+                  "sitio_web": {
+                    "type": "string",
+                    "maxLength": 200,
+                    "description": "Sitio web del aliado"
+                  },
+                  "activo": {
+                    "type": "boolean",
+                    "description": "Indica si la alianza está activa"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Alianza actualizada exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string", "format": "uuid" },
+                        "nombre": { "type": "string" },
+                        "descripcion": { "type": "string" },
+                        "logo_url": { "type": "string" },
+                        "sitio_web": { "type": "string" },
+                        "activo": { "type": "boolean" },
+                        "created_at": { "type": "string", "format": "date-time" },
+                        "updated_at": { "type": "string", "format": "date-time" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Datos de alianza inválidos" },
+          "401": { "description": "Token no válido o expirado" },
+          "403": { "description": "Acceso denegado - Se requiere rol admin" },
+          "404": { "description": "Alianza no encontrada" }
+        }
+      },
+      "delete": {
+        "tags": ["Alianzas - Admin"],
+        "summary": "Eliminar alianza permanentemente",
+        "description": "Elimina una alianza de forma permanente (solo admins)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "ID de la alianza"
+          }
+        ],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Alianza eliminada exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string", "format": "uuid" },
+                        "nombre": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Token no válido o expirado" },
+          "403": { "description": "Acceso denegado - Se requiere rol admin" },
+          "404": { "description": "Alianza no encontrada" }
+        }
+      }
+    },
+    "/api/alianzas/{id}/desactivar": {
+      "patch": {
+        "tags": ["Alianzas - Admin"],
+        "summary": "Desactivar alianza",
+        "description": "Desactiva una alianza (soft delete) (solo admins)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "ID de la alianza"
+          }
+        ],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Alianza desactivada exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string", "format": "uuid" },
+                        "nombre": { "type": "string" },
+                        "activo": { "type": "boolean" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Token no válido o expirado" },
+          "403": { "description": "Acceso denegado - Se requiere rol admin" },
+          "404": { "description": "Alianza no encontrada" }
+        }
+      }
+    },
+    "/api/alianzas/{id}/activar": {
+      "patch": {
+        "tags": ["Alianzas - Admin"],
+        "summary": "Activar alianza",
+        "description": "Activa una alianza (solo admins)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "ID de la alianza"
+          }
+        ],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Alianza activada exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string", "format": "uuid" },
+                        "nombre": { "type": "string" },
+                        "activo": { "type": "boolean" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Token no válido o expirado" },
+          "403": { "description": "Acceso denegado - Se requiere rol admin" },
+          "404": { "description": "Alianza no encontrada" }
         }
       }
     }

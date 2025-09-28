@@ -793,6 +793,163 @@ const validatePostulationStatus = (req, res, next) => {
   next();
 };
 
+// =============================================
+// VALIDACIÓN DE ALIANZAS (PARTNERS)
+// =============================================
+
+// Validar datos de alianza
+const validatePartner = (req, res, next) => {
+  const { nombre, descripcion, logo_url, sitio_web, activo } = req.body;
+  const errors = [];
+
+  // Validar nombre
+  if (!nombre || typeof nombre !== 'string') {
+    errors.push('El nombre de la alianza es requerido');
+  } else if (nombre.trim().length < 2) {
+    errors.push('El nombre debe tener al menos 2 caracteres');
+  } else if (nombre.trim().length > 100) {
+    errors.push('El nombre no puede exceder 100 caracteres');
+  }
+
+  // Validar descripción
+  if (!descripcion || typeof descripcion !== 'string') {
+    errors.push('La descripción es requerida');
+  } else if (descripcion.trim().length < 10) {
+    errors.push('La descripción debe tener al menos 10 caracteres');
+  } else if (descripcion.trim().length > 1000) {
+    errors.push('La descripción no puede exceder 1000 caracteres');
+  }
+
+  // Validar logo_url (opcional)
+  if (logo_url !== undefined && logo_url !== null && logo_url !== '') {
+    if (typeof logo_url !== 'string') {
+      errors.push('La URL del logo debe ser texto');
+    } else if (logo_url.trim().length > 500) {
+      errors.push('La URL del logo no puede exceder 500 caracteres');
+    } else {
+      // Validación básica de formato URL
+      const urlRegex = /^https?:\/\/.+/;
+      if (!urlRegex.test(logo_url.trim())) {
+        errors.push('La URL del logo debe ser una URL válida (http:// o https://)');
+      }
+    }
+  }
+
+  // Validar sitio_web (opcional)
+  if (sitio_web !== undefined && sitio_web !== null && sitio_web !== '') {
+    if (typeof sitio_web !== 'string') {
+      errors.push('El sitio web debe ser texto');
+    } else if (sitio_web.trim().length > 200) {
+      errors.push('El sitio web no puede exceder 200 caracteres');
+    } else {
+      // Validación básica de formato URL
+      const urlRegex = /^https?:\/\/.+/;
+      if (!urlRegex.test(sitio_web.trim())) {
+        errors.push('El sitio web debe ser una URL válida (http:// o https://)');
+      }
+    }
+  }
+
+  // Validar activo (opcional)
+  if (activo !== undefined && typeof activo !== 'boolean') {
+    errors.push('El campo activo debe ser verdadero o falso');
+  }
+
+  if (errors.length > 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'Errores de validación en la alianza',
+      errors
+    });
+  }
+
+  // Limpiar datos
+  req.body.nombre = nombre.trim();
+  req.body.descripcion = descripcion.trim();
+  if (logo_url) req.body.logo_url = logo_url.trim();
+  if (sitio_web) req.body.sitio_web = sitio_web.trim();
+
+  next();
+};
+
+// Validar parámetros de paginación para alianzas
+const validatePartnerPagination = (req, res, next) => {
+  const { page, limit, activo, nombre, descripcion, fecha_desde, fecha_hasta } = req.query;
+  const errors = [];
+
+  // Validar page
+  if (page !== undefined) {
+    const pageNum = parseInt(page);
+    if (isNaN(pageNum) || pageNum < 1) {
+      errors.push('El parámetro page debe ser un número entero mayor a 0');
+    } else {
+      req.query.page = pageNum;
+    }
+  }
+
+  // Validar limit
+  if (limit !== undefined) {
+    const limitNum = parseInt(limit);
+    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+      errors.push('El parámetro limit debe ser un número entero entre 1 y 100');
+    } else {
+      req.query.limit = limitNum;
+    }
+  }
+
+  // Validar activo
+  if (activo !== undefined) {
+    if (activo !== 'true' && activo !== 'false') {
+      errors.push('El parámetro activo debe ser true o false');
+    } else {
+      req.query.activo = activo === 'true';
+    }
+  }
+
+  // Validar nombre
+  if (nombre !== undefined) {
+    if (typeof nombre !== 'string' || nombre.trim().length === 0) {
+      errors.push('El filtro de nombre debe ser un texto válido');
+    } else {
+      req.query.nombre = nombre.trim();
+    }
+  }
+
+  // Validar descripción
+  if (descripcion !== undefined) {
+    if (typeof descripcion !== 'string' || descripcion.trim().length === 0) {
+      errors.push('El filtro de descripción debe ser un texto válido');
+    } else {
+      req.query.descripcion = descripcion.trim();
+    }
+  }
+
+  // Validar fechas
+  if (fecha_desde !== undefined) {
+    const date = new Date(fecha_desde);
+    if (isNaN(date.getTime())) {
+      errors.push('La fecha desde debe ser una fecha válida (YYYY-MM-DD)');
+    }
+  }
+
+  if (fecha_hasta !== undefined) {
+    const date = new Date(fecha_hasta);
+    if (isNaN(date.getTime())) {
+      errors.push('La fecha hasta debe ser una fecha válida (YYYY-MM-DD)');
+    }
+  }
+
+  if (errors.length > 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'Errores de validación en parámetros de filtros',
+      errors
+    });
+  }
+
+  next();
+};
+
 module.exports = {
   validateRegister,
   validateLogin,
@@ -805,5 +962,7 @@ module.exports = {
   validateEventId,
   validatePostulation,
   validatePostulationPagination,
-  validatePostulationStatus
+  validatePostulationStatus,
+  validatePartner,
+  validatePartnerPagination
 };

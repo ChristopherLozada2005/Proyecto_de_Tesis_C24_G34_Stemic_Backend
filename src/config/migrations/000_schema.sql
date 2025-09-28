@@ -477,3 +477,66 @@ CREATE TRIGGER update_postulations_updated_at
   BEFORE UPDATE ON postulations 
   FOR EACH ROW 
   EXECUTE FUNCTION update_postulations_updated_at_column();
+
+-- =============================================
+-- TABLA: PARTNERS (ALIANZAS)
+-- =============================================
+
+-- Crear tabla de partners/alianzas
+CREATE TABLE IF NOT EXISTS partners (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nombre VARCHAR(100) NOT NULL,
+  descripcion TEXT NOT NULL,
+  logo_url VARCHAR(500) NULL,
+  sitio_web VARCHAR(200) NULL,
+  activo BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Índices para optimizar consultas
+CREATE INDEX IF NOT EXISTS idx_partners_nombre ON partners(nombre);
+CREATE INDEX IF NOT EXISTS idx_partners_activo ON partners(activo);
+CREATE INDEX IF NOT EXISTS idx_partners_created_at ON partners(created_at);
+
+-- Comentarios
+COMMENT ON TABLE partners IS 'Alianzas y partners de la plataforma';
+COMMENT ON COLUMN partners.id IS 'Identificador único de la alianza';
+COMMENT ON COLUMN partners.nombre IS 'Nombre de la organización o aliado';
+COMMENT ON COLUMN partners.descripcion IS 'Descripción breve de la alianza';
+COMMENT ON COLUMN partners.logo_url IS 'URL del logo o imagen representativa';
+COMMENT ON COLUMN partners.sitio_web IS 'Sitio web del aliado (opcional)';
+COMMENT ON COLUMN partners.activo IS 'Indica si la alianza está activa o no';
+COMMENT ON COLUMN partners.created_at IS 'Fecha de creación del registro';
+COMMENT ON COLUMN partners.updated_at IS 'Fecha de última actualización';
+
+-- Trigger para actualizar updated_at automáticamente
+CREATE OR REPLACE FUNCTION update_partners_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = CURRENT_TIMESTAMP;
+  RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER update_partners_updated_at 
+  BEFORE UPDATE ON partners 
+  FOR EACH ROW 
+  EXECUTE FUNCTION update_partners_updated_at_column();
+
+-- =============================================
+-- DATOS DE EJEMPLO PARA PARTNERS
+-- =============================================
+
+-- Insertar algunos partners de ejemplo (solo si no existen)
+-- Estos datos son útiles para desarrollo y testing
+INSERT INTO partners (nombre, descripcion, logo_url, sitio_web, activo) VALUES
+('TECSUP', 'Institución educativa líder en tecnología e ingeniería', 'https://via.placeholder.com/150x150?text=TECSUP', 'https://www.tecsup.edu.pe', true),
+('Microsoft', 'Colaboración en tecnologías cloud y desarrollo de software', 'https://via.placeholder.com/150x150?text=Microsoft', 'https://www.microsoft.com', true),
+('Google', 'Partnership en herramientas de desarrollo y cloud computing', 'https://via.placeholder.com/150x150?text=Google', 'https://www.google.com', true),
+('Amazon Web Services', 'Alianza en servicios de cloud computing y IA', 'https://via.placeholder.com/150x150?text=AWS', 'https://aws.amazon.com', true),
+('Oracle', 'Colaboración en bases de datos y tecnologías empresariales', 'https://via.placeholder.com/150x150?text=Oracle', 'https://www.oracle.com', false)
+ON CONFLICT (id) DO NOTHING;
+
+-- Nota: Estos son datos de ejemplo para desarrollo.
+-- En producción, estos datos pueden ser eliminados o reemplazados por datos reales.

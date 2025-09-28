@@ -34,6 +34,19 @@ const eventStorage = new CloudinaryStorage({
   }
 });
 
+// Storage para logos de alianzas
+const partnerStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'stemic/partners',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'svg'],
+    transformation: [
+      { width: 300, height: 300, crop: 'fill', gravity: 'center' },
+      { quality: 'auto' }
+    ]
+  }
+});
+
 // Función para eliminar imagen
 const deleteImage = async (publicId) => {
   try {
@@ -58,6 +71,7 @@ module.exports = {
   cloudinary,
   profileStorage,
   eventStorage,
+  partnerStorage,
   deleteImage,
   extractPublicId
 };

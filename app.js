@@ -14,6 +14,7 @@ const authRoutes = require('./src/routes/auth');
 const eventRoutes = require('./src/routes/events');
 const inscriptionRoutes = require('./src/routes/inscriptions');
 const postulationRoutes = require('./src/routes/postulations');
+const partnerRoutes = require('./src/routes/partners');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -42,6 +43,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api', inscriptionRoutes);
 app.use('/api/postulations', postulationRoutes);
+app.use('/api/alianzas', partnerRoutes);
 
 // Documentación Swagger
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));

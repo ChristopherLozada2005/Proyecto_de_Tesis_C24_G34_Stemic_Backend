@@ -1,5 +1,5 @@
 const multer = require('multer');
-const { profileStorage, eventStorage, deleteImage, extractPublicId } = require('../config/cloudinary');
+const { profileStorage, eventStorage, partnerStorage, deleteImage, extractPublicId } = require('../config/cloudinary');
 
 // Configurar Multer con Cloudinary para perfiles
 const uploadProfileImage = multer({
@@ -38,6 +38,27 @@ const uploadEventImage = multer({
       return cb(null, true);
     } else {
       cb(new Error('Solo se permiten archivos de imagen (JPEG, JPG, PNG, WebP)'));
+    }
+  }
+});
+
+// Configurar Multer con Cloudinary para logos de alianzas
+const uploadPartnerLogo = multer({
+  storage: partnerStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB para logos
+    files: 1
+  },
+  fileFilter: (req, file, cb) => {
+    // Validar tipos de archivo (incluyendo SVG para logos)
+    const allowedTypes = /jpeg|jpg|png|webp|svg/;
+    const extName = allowedTypes.test(file.originalname.toLowerCase());
+    const mimeType = allowedTypes.test(file.mimetype);
+
+    if (mimeType && extName) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Solo se permiten archivos de imagen (JPEG, JPG, PNG, WebP, SVG)'));
     }
   }
 });
@@ -128,6 +149,55 @@ const handleEventImageUpload = (req, res, next) => {
   });
 };
 
+// Middleware para manejar upload de logo de alianza
+const handlePartnerLogoUpload = (req, res, next) => {
+  uploadPartnerLogo.single('logo')(req, res, (err) => {
+    if (err) {
+      if (err instanceof multer.MulterError) {
+        switch (err.code) {
+          case 'LIMIT_FILE_SIZE':
+            return res.status(400).json({
+              success: false,
+              message: 'El logo es demasiado grande. Máximo permitido: 5MB'
+            });
+          case 'LIMIT_FILE_COUNT':
+            return res.status(400).json({
+              success: false,
+              message: 'Solo se permite un logo por alianza'
+            });
+          default:
+            return res.status(400).json({
+              success: false,
+              message: 'Error al subir el logo: ' + err.message
+            });
+        }
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: err.message
+        });
+      }
+    }
+
+    // Si se subió un archivo, guardar la información
+    if (req.file) {
+      req.uploadedFile = {
+        url: req.file.path,
+        publicId: req.file.filename,
+        originalName: req.file.originalname,
+        size: req.file.size
+      };
+      
+      // Agregar la URL del logo al body de la request
+      req.body.logo_url = req.file.path;
+      
+      console.log(`Logo subido a Cloudinary: ${req.file.path}`);
+    }
+
+    next();
+  });
+};
+
 // Middleware para limpiar imagen en caso de error
 const cleanupImageOnError = (req, res, next) => {
   const originalSend = res.send;
@@ -168,6 +238,7 @@ const deleteOldImage = async (imageUrl) => {
 module.exports = {
   handleProfileImageUpload,
   handleEventImageUpload,
+  handlePartnerLogoUpload,
   cleanupImageOnError,
   deleteOldImage
 };
