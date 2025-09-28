@@ -1789,9 +1789,9 @@
     },
     "/api/alianzas": {
       "get": {
-        "tags": ["Alianzas - Admin"],
-        "summary": "Obtener todas las alianzas",
-        "description": "Obtiene todas las alianzas con filtros (solo admins)",
+        "tags": ["Alianzas - Público"],
+        "summary": "Obtener alianzas activas",
+        "description": "Obtiene las alianzas activas de LEAD at TECSUP (público para todos los usuarios)",
         "parameters": [
           {
             "name": "page",
@@ -1836,10 +1836,9 @@
             "description": "Filtrar hasta fecha (YYYY-MM-DD)"
           }
         ],
-        "security": [{ "bearerAuth": [] }],
         "responses": {
           "200": {
-            "description": "Alianzas obtenidas exitosamente",
+            "description": "Alianzas activas obtenidas exitosamente",
             "content": {
               "application/json": {
                 "schema": {
@@ -1876,9 +1875,7 @@
               }
             }
           },
-          "400": { "description": "Parámetros de filtros inválidos" },
-          "401": { "description": "Token no válido o expirado" },
-          "403": { "description": "Acceso denegado - Se requiere rol admin" }
+          "400": { "description": "Parámetros de filtros inválidos" }
         }
       },
       "post": {
@@ -2014,6 +2011,101 @@
           "401": { "description": "Token no válido o expirado" },
           "403": { "description": "Acceso denegado - Se requiere rol admin" },
           "409": { "description": "Ya existe una alianza con ese nombre" }
+        }
+      }
+    },
+    "/api/alianzas/admin": {
+      "get": {
+        "tags": ["Alianzas - Admin"],
+        "summary": "Obtener todas las alianzas (admin)",
+        "description": "Obtiene todas las alianzas incluyendo inactivas (solo admins)",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "default": 1 },
+            "description": "Número de página"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 10 },
+            "description": "Elementos por página"
+          },
+          {
+            "name": "activo",
+            "in": "query",
+            "schema": { "type": "boolean" },
+            "description": "Filtrar por estado activo (true/false)"
+          },
+          {
+            "name": "nombre",
+            "in": "query",
+            "schema": { "type": "string" },
+            "description": "Filtrar por nombre"
+          },
+          {
+            "name": "descripcion",
+            "in": "query",
+            "schema": { "type": "string" },
+            "description": "Filtrar por descripción"
+          },
+          {
+            "name": "fecha_desde",
+            "in": "query",
+            "schema": { "type": "string", "format": "date" },
+            "description": "Filtrar desde fecha (YYYY-MM-DD)"
+          },
+          {
+            "name": "fecha_hasta",
+            "in": "query",
+            "schema": { "type": "string", "format": "date" },
+            "description": "Filtrar hasta fecha (YYYY-MM-DD)"
+          }
+        ],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Alianzas obtenidas exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string", "format": "uuid" },
+                          "nombre": { "type": "string" },
+                          "descripcion": { "type": "string" },
+                          "logo_url": { "type": "string" },
+                          "sitio_web": { "type": "string" },
+                          "activo": { "type": "boolean" },
+                          "created_at": { "type": "string", "format": "date-time" },
+                          "updated_at": { "type": "string", "format": "date-time" }
+                        }
+                      }
+                    },
+                    "pagination": {
+                      "type": "object",
+                      "properties": {
+                        "page": { "type": "integer" },
+                        "limit": { "type": "integer" },
+                        "total": { "type": "integer" },
+                        "totalPages": { "type": "integer" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Parámetros de filtros inválidos" },
+          "401": { "description": "Token no válido o expirado" },
+          "403": { "description": "Acceso denegado - Se requiere rol admin" }
         }
       }
     },

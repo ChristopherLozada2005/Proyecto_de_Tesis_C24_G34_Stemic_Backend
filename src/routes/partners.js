@@ -10,19 +10,25 @@ const { handlePartnerLogoUpload, cleanupImageOnError } = require('../middleware/
 // RUTAS PÚBLICAS
 // =============================================
 
-// Obtener alianzas activas (público)
+// Obtener alianzas activas (público) - Alias para compatibilidad
 router.get('/activas', PartnerController.getActivePartners);
+
+// Obtener todas las alianzas activas (público) - Endpoint principal
+router.get('/', 
+  validatePartnerPagination,
+  PartnerController.getAllPartners
+);
 
 // =============================================
 // RUTAS PROTEGIDAS - SOLO ADMINS
 // =============================================
 
-// Obtener todas las alianzas con filtros
-router.get('/', 
+// Obtener todas las alianzas con filtros (incluyendo inactivas) - Solo admins
+router.get('/admin', 
   authenticateToken, 
   requireAdmin,
   validatePartnerPagination,
-  PartnerController.getAllPartners
+  PartnerController.getAllPartnersForAdmin
 );
 
 // Buscar alianzas por nombre

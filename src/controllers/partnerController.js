@@ -38,14 +38,61 @@ class PartnerController {
     }
   }
 
-  // Obtener todas las alianzas (solo admins)
+  // Obtener todas las alianzas activas (público)
   static async getAllPartners(req, res) {
     try {
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 10;
       const filters = {};
 
-      // Aplicar filtros
+      // Aplicar filtros (solo activas por defecto para usuarios públicos)
+      if (req.query.activo !== undefined) {
+        filters.activo = req.query.activo === 'true';
+      } else {
+        // Por defecto, mostrar solo alianzas activas para usuarios públicos
+        filters.activo = true;
+      }
+      
+      if (req.query.nombre) {
+        filters.nombre = req.query.nombre;
+      }
+      if (req.query.descripcion) {
+        filters.descripcion = req.query.descripcion;
+      }
+      if (req.query.fecha_desde) {
+        filters.fecha_desde = req.query.fecha_desde;
+      }
+      if (req.query.fecha_hasta) {
+        filters.fecha_hasta = req.query.fecha_hasta;
+      }
+
+      // Usar método que filtra por defecto solo activas
+      const result = await Partner.findAll(filters, page, limit);
+      
+      res.status(200).json({
+        success: true,
+        data: result.partners.map(partner => partner.toJSON()),
+        pagination: result.pagination
+      });
+    } catch (error) {
+      console.error('Error en getAllPartners:', error);
+      
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Error interno'
+      });
+    }
+  }
+
+  // Obtener todas las alianzas (incluyendo inactivas) - Solo admins
+  static async getAllPartnersForAdmin(req, res) {
+    try {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const filters = {};
+
+      // Aplicar filtros (admins pueden ver todas)
       if (req.query.activo !== undefined) {
         filters.activo = req.query.activo === 'true';
       }
@@ -71,7 +118,7 @@ class PartnerController {
         pagination: result.pagination
       });
     } catch (error) {
-      console.error('Error en getAllPartners:', error);
+      console.error('Error en getAllPartnersForAdmin:', error);
       
       res.status(500).json({
         success: false,
