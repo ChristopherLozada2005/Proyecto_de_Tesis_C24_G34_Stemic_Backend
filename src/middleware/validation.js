@@ -646,6 +646,153 @@ const validateEventId = (req, res, next) => {
   next();
 };
 
+// =============================================
+// VALIDACIÓN DE POSTULACIONES
+// =============================================
+
+// Validar datos de postulación
+const validatePostulation = (req, res, next) => {
+  const { carrera_especialidad, motivacion } = req.body;
+  const errors = [];
+
+  // Validar carrera_especialidad
+  if (!carrera_especialidad || typeof carrera_especialidad !== 'string') {
+    errors.push('La carrera o especialidad es requerida');
+  } else if (carrera_especialidad.trim().length < 2) {
+    errors.push('La carrera o especialidad debe tener al menos 2 caracteres');
+  } else if (carrera_especialidad.trim().length > 100) {
+    errors.push('La carrera o especialidad no puede exceder 100 caracteres');
+  }
+
+  // Validar motivacion
+  if (!motivacion || typeof motivacion !== 'string') {
+    errors.push('La motivación es requerida');
+  } else if (motivacion.trim().length < 10) {
+    errors.push('La motivación debe tener al menos 10 caracteres');
+  } else if (motivacion.trim().length > 1000) {
+    errors.push('La motivación no puede exceder 1000 caracteres');
+  }
+
+  if (errors.length > 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'Errores de validación en la postulación',
+      errors
+    });
+  }
+
+  // Limpiar datos
+  req.body.carrera_especialidad = carrera_especialidad.trim();
+  req.body.motivacion = motivacion.trim();
+
+  next();
+};
+
+// Validar parámetros de paginación para postulaciones
+const validatePostulationPagination = (req, res, next) => {
+  const { page, limit, estado, carrera_especialidad, fecha_desde, fecha_hasta } = req.query;
+  const errors = [];
+
+  // Validar page
+  if (page !== undefined) {
+    const pageNum = parseInt(page);
+    if (isNaN(pageNum) || pageNum < 1) {
+      errors.push('El parámetro page debe ser un número entero mayor a 0');
+    } else {
+      req.query.page = pageNum;
+    }
+  }
+
+  // Validar limit
+  if (limit !== undefined) {
+    const limitNum = parseInt(limit);
+    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+      errors.push('El parámetro limit debe ser un número entero entre 1 y 100');
+    } else {
+      req.query.limit = limitNum;
+    }
+  }
+
+  // Validar estado
+  if (estado !== undefined) {
+    const validStates = ['pendiente', 'aprobada', 'rechazada'];
+    if (!validStates.includes(estado)) {
+      errors.push(`Estado inválido. Estados válidos: ${validStates.join(', ')}`);
+    }
+  }
+
+  // Validar carrera_especialidad
+  if (carrera_especialidad !== undefined) {
+    if (typeof carrera_especialidad !== 'string' || carrera_especialidad.trim().length === 0) {
+      errors.push('El filtro de carrera debe ser un texto válido');
+    } else {
+      req.query.carrera_especialidad = carrera_especialidad.trim();
+    }
+  }
+
+  // Validar fechas
+  if (fecha_desde !== undefined) {
+    const date = new Date(fecha_desde);
+    if (isNaN(date.getTime())) {
+      errors.push('La fecha desde debe ser una fecha válida (YYYY-MM-DD)');
+    }
+  }
+
+  if (fecha_hasta !== undefined) {
+    const date = new Date(fecha_hasta);
+    if (isNaN(date.getTime())) {
+      errors.push('La fecha hasta debe ser una fecha válida (YYYY-MM-DD)');
+    }
+  }
+
+  if (errors.length > 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'Errores de validación en parámetros de filtros',
+      errors
+    });
+  }
+
+  next();
+};
+
+// Validar cambio de estado de postulación
+const validatePostulationStatus = (req, res, next) => {
+  const { estado, comentarios } = req.body;
+  const errors = [];
+
+  // Validar estado
+  if (!estado || typeof estado !== 'string') {
+    errors.push('El estado es requerido');
+  } else {
+    const validStates = ['pendiente', 'aprobada', 'rechazada'];
+    if (!validStates.includes(estado)) {
+      errors.push(`Estado inválido. Estados válidos: ${validStates.join(', ')}`);
+    }
+  }
+
+  // Validar comentarios (opcional)
+  if (comentarios !== undefined) {
+    if (typeof comentarios !== 'string') {
+      errors.push('Los comentarios deben ser texto');
+    } else if (comentarios.trim().length > 500) {
+      errors.push('Los comentarios no pueden exceder 500 caracteres');
+    } else {
+      req.body.comentarios = comentarios.trim();
+    }
+  }
+
+  if (errors.length > 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'Errores de validación en el cambio de estado',
+      errors
+    });
+  }
+
+  next();
+};
+
 module.exports = {
   validateRegister,
   validateLogin,
@@ -655,5 +802,8 @@ module.exports = {
   validateEventFilters,
   validateProfile,
   validateInscriptionPagination,
-  validateEventId
+  validateEventId,
+  validatePostulation,
+  validatePostulationPagination,
+  validatePostulationStatus
 };

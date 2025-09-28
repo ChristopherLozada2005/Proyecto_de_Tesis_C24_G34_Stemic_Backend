@@ -21,7 +21,7 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- Tags
 DO $$ BEGIN
-  CREATE TYPE tag_evento AS ENUM ('IA', 'TECH', 'NETWORKING');
+  CREATE TYPE tag_evento AS ENUM ('ia', 'tech', 'networking');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ===============================
@@ -409,3 +409,71 @@ CREATE TRIGGER update_inscriptions_updated_at
   BEFORE UPDATE ON inscriptions 
   FOR EACH ROW 
   EXECUTE FUNCTION update_inscriptions_updated_at_column();
+
+-- =============================================
+-- TABLA: POSTULACIONES LEAD AT TECSUP
+-- =============================================
+
+-- Crear enum para estados de postulación
+DO $$ BEGIN
+  CREATE TYPE estado_postulacion AS ENUM ('pendiente', 'aprobada', 'rechazada');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Crear tabla de postulaciones para LEAD at TECSUP
+CREATE TABLE IF NOT EXISTS postulations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  carrera_especialidad VARCHAR(100) NOT NULL,
+  motivacion TEXT NOT NULL,
+  estado estado_postulacion DEFAULT 'pendiente',
+  fecha_postulacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  fecha_revision TIMESTAMP WITH TIME ZONE NULL,
+  revisado_por UUID NULL,
+  comentarios_revision TEXT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  
+  -- Claves foráneas
+  CONSTRAINT fk_postulations_user_id 
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_postulations_revisado_por 
+    FOREIGN KEY (revisado_por) REFERENCES users(id) ON DELETE SET NULL,
+  
+  -- Restricción única: un usuario solo puede postular una vez
+  CONSTRAINT unique_user_postulation 
+    UNIQUE (user_id)
+);
+
+-- Índices para optimizar consultas
+CREATE INDEX IF NOT EXISTS idx_postulations_user_id ON postulations(user_id);
+CREATE INDEX IF NOT EXISTS idx_postulations_estado ON postulations(estado);
+CREATE INDEX IF NOT EXISTS idx_postulations_fecha ON postulations(fecha_postulacion);
+CREATE INDEX IF NOT EXISTS idx_postulations_revisado_por ON postulations(revisado_por);
+
+-- Comentarios
+COMMENT ON TABLE postulations IS 'Postulaciones para unirse a LEAD at TECSUP';
+COMMENT ON COLUMN postulations.id IS 'Identificador único de la postulación';
+COMMENT ON COLUMN postulations.user_id IS 'ID del usuario que postula';
+COMMENT ON COLUMN postulations.carrera_especialidad IS 'Carrera o especialidad del postulante';
+COMMENT ON COLUMN postulations.motivacion IS 'Motivación del postulante para unirse a LEAD';
+COMMENT ON COLUMN postulations.estado IS 'Estado de la postulación: pendiente, aprobada, rechazada';
+COMMENT ON COLUMN postulations.fecha_postulacion IS 'Fecha de la postulación';
+COMMENT ON COLUMN postulations.fecha_revision IS 'Fecha de revisión por admin';
+COMMENT ON COLUMN postulations.revisado_por IS 'ID del admin que revisó la postulación';
+COMMENT ON COLUMN postulations.comentarios_revision IS 'Comentarios del admin sobre la decisión';
+COMMENT ON COLUMN postulations.created_at IS 'Fecha de creación del registro';
+COMMENT ON COLUMN postulations.updated_at IS 'Fecha de última actualización';
+
+-- Trigger para actualizar updated_at automáticamente
+CREATE OR REPLACE FUNCTION update_postulations_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = CURRENT_TIMESTAMP;
+  RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER update_postulations_updated_at 
+  BEFORE UPDATE ON postulations 
+  FOR EACH ROW 
+  EXECUTE FUNCTION update_postulations_updated_at_column();

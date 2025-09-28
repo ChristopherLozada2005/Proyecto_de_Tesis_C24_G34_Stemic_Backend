@@ -13,6 +13,7 @@ const { testConnection } = require('./src/config/database');
 const authRoutes = require('./src/routes/auth');
 const eventRoutes = require('./src/routes/events');
 const inscriptionRoutes = require('./src/routes/inscriptions');
+const postulationRoutes = require('./src/routes/postulations');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -40,6 +41,7 @@ app.use((req, res, next) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api', inscriptionRoutes);
+app.use('/api/postulations', postulationRoutes);
 
 // Documentación Swagger
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
