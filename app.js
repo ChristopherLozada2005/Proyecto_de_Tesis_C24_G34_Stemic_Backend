@@ -12,6 +12,7 @@ const { testConnection } = require('./src/config/database');
 // Importar rutas
 const authRoutes = require('./src/routes/auth');
 const eventRoutes = require('./src/routes/events');
+const inscriptionRoutes = require('./src/routes/inscriptions');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -38,6 +39,7 @@ app.use((req, res, next) => {
 // Rutas
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api', inscriptionRoutes);
 
 // Documentación Swagger
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));

@@ -681,6 +681,411 @@
           "404": { "description": "Evento no encontrado" }
         }
       }
+    },
+    "/api/events/{id}/inscription/status": {
+      "get": {
+        "tags": ["Inscripciones"],
+        "summary": "Verificar estado de inscripción",
+        "description": "Verifica si el usuario autenticado está inscrito en un evento específico",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "ID del evento"
+          }
+        ],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Estado de inscripción obtenido exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "is_inscribed": { "type": "boolean" },
+                        "inscription": {
+                          "type": "object",
+                          "nullable": true,
+                          "properties": {
+                            "id": { "type": "string", "format": "uuid" },
+                            "fecha_inscripcion": { "type": "string", "format": "date-time" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "is_inscribed": true,
+                    "inscription": {
+                      "id": "123e4567-e89b-12d3-a456-426614174000",
+                      "fecha_inscripcion": "2024-01-15T10:30:00Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "ID de evento inválido" },
+          "401": { "description": "Token no válido o expirado" }
+        }
+      }
+    },
+    "/api/events/{id}/inscription": {
+      "post": {
+        "tags": ["Inscripciones"],
+        "summary": "Inscribirse a un evento",
+        "description": "Permite al usuario autenticado inscribirse a un evento específico",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "ID del evento"
+          }
+        ],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "201": {
+            "description": "Inscripción realizada exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string", "format": "uuid" },
+                        "user_id": { "type": "string", "format": "uuid" },
+                        "event_id": { "type": "string", "format": "uuid" },
+                        "fecha_inscripcion": { "type": "string", "format": "date-time" }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "Te has inscrito exitosamente al evento",
+                  "data": {
+                    "id": "123e4567-e89b-12d3-a456-426614174000",
+                    "user_id": "456e7890-e89b-12d3-a456-426614174001",
+                    "event_id": "789e0123-e89b-12d3-a456-426614174002",
+                    "fecha_inscripcion": "2024-01-15T10:30:00Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "ID de evento inválido o evento ya pasó" },
+          "401": { "description": "Token no válido o expirado" },
+          "404": { "description": "Evento no encontrado" },
+          "409": { "description": "Ya estás inscrito en este evento" }
+        }
+      },
+      "delete": {
+        "tags": ["Inscripciones"],
+        "summary": "Cancelar inscripción",
+        "description": "Permite al usuario autenticado cancelar su inscripción a un evento",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "ID del evento"
+          }
+        ],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Inscripción cancelada exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "inscription_id": { "type": "string", "format": "uuid" },
+                        "fecha_inscripcion": { "type": "string", "format": "date-time" }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "Te has desinscrito exitosamente del evento",
+                  "data": {
+                    "inscription_id": "123e4567-e89b-12d3-a456-426614174000",
+                    "fecha_inscripcion": "2024-01-15T10:30:00Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "ID de evento inválido" },
+          "401": { "description": "Token no válido o expirado" },
+          "404": { "description": "No estás inscrito en este evento" }
+        }
+      }
+    },
+    "/api/my-inscriptions": {
+      "get": {
+        "tags": ["Inscripciones"],
+        "summary": "Obtener mis inscripciones",
+        "description": "Obtiene todas las inscripciones del usuario autenticado con información del evento",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "default": 1 },
+            "description": "Número de página"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 10 },
+            "description": "Elementos por página"
+          }
+        ],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Inscripciones obtenidas exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string", "format": "uuid" },
+                          "user_id": { "type": "string", "format": "uuid" },
+                          "event_id": { "type": "string", "format": "uuid" },
+                          "fecha_inscripcion": { "type": "string", "format": "date-time" },
+                          "evento": {
+                            "type": "object",
+                            "properties": {
+                              "id": { "type": "string", "format": "uuid" },
+                              "titulo": { "type": "string" },
+                              "descripcion": { "type": "string" },
+                              "fecha_hora": { "type": "string", "format": "date-time" },
+                              "modalidad": { "type": "string", "enum": ["presencial", "virtual", "hibrida"] },
+                              "lugar": { "type": "string" },
+                              "imagen_url": { "type": "string" },
+                              "tags": { "type": "array", "items": { "type": "string" } }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "pagination": {
+                      "type": "object",
+                      "properties": {
+                        "page": { "type": "integer" },
+                        "limit": { "type": "integer" },
+                        "total": { "type": "integer" },
+                        "totalPages": { "type": "integer" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Parámetros de paginación inválidos" },
+          "401": { "description": "Token no válido o expirado" }
+        }
+      }
+    },
+    "/api/my-inscriptions/stats": {
+      "get": {
+        "tags": ["Inscripciones"],
+        "summary": "Obtener estadísticas de mis inscripciones",
+        "description": "Obtiene estadísticas de las inscripciones del usuario autenticado",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Estadísticas obtenidas exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "total_inscripciones": { "type": "integer" },
+                        "primera_inscripcion": { "type": "string", "format": "date-time" },
+                        "ultima_inscripcion": { "type": "string", "format": "date-time" }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "total_inscripciones": 5,
+                    "primera_inscripcion": "2024-01-01T10:00:00Z",
+                    "ultima_inscripcion": "2024-01-15T14:30:00Z"
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Token no válido o expirado" }
+        }
+      }
+    },
+    "/api/events/{id}/inscriptions": {
+      "get": {
+        "tags": ["Inscripciones - Organizadores"],
+        "summary": "Obtener inscripciones de un evento",
+        "description": "Obtiene todas las inscripciones de un evento específico (solo organizadores y admins)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "ID del evento"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "default": 1 },
+            "description": "Número de página"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 10 },
+            "description": "Elementos por página"
+          }
+        ],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Inscripciones del evento obtenidas exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string", "format": "uuid" },
+                          "user_id": { "type": "string", "format": "uuid" },
+                          "event_id": { "type": "string", "format": "uuid" },
+                          "fecha_inscripcion": { "type": "string", "format": "date-time" },
+                          "usuario": {
+                            "type": "object",
+                            "properties": {
+                              "id": { "type": "string", "format": "uuid" },
+                              "nombre": { "type": "string" },
+                              "correo": { "type": "string" },
+                              "avatar_url": { "type": "string" },
+                              "telefono": { "type": "string" }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "pagination": {
+                      "type": "object",
+                      "properties": {
+                        "page": { "type": "integer" },
+                        "limit": { "type": "integer" },
+                        "total": { "type": "integer" },
+                        "totalPages": { "type": "integer" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "ID de evento inválido o parámetros de paginación inválidos" },
+          "401": { "description": "Token no válido o expirado" },
+          "403": { "description": "Acceso denegado - Se requiere rol organizador o admin" }
+        }
+      }
+    },
+    "/api/events/{id}/inscriptions/stats": {
+      "get": {
+        "tags": ["Inscripciones - Organizadores"],
+        "summary": "Obtener estadísticas de inscripciones de un evento",
+        "description": "Obtiene estadísticas de las inscripciones de un evento específico (solo organizadores y admins)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "ID del evento"
+          }
+        ],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Estadísticas del evento obtenidas exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "total_inscripciones": { "type": "integer" },
+                        "primera_inscripcion": { "type": "string", "format": "date-time" },
+                        "ultima_inscripcion": { "type": "string", "format": "date-time" }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "total_inscripciones": 25,
+                    "primera_inscripcion": "2024-01-01T10:00:00Z",
+                    "ultima_inscripcion": "2024-01-15T14:30:00Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "ID de evento inválido" },
+          "401": { "description": "Token no válido o expirado" },
+          "403": { "description": "Acceso denegado - Se requiere rol organizador o admin" }
+        }
+      }
     }
   },
   "components": {

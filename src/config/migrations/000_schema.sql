@@ -357,3 +357,55 @@ DO $$ BEGIN
   RAISE NOTICE '- admin@test.com (password: password) - ROL: admin';
 
 END $$;
+
+-- =============================================
+-- TABLA: INSCRIPCIONES
+-- =============================================
+
+-- Crear tabla de inscripciones de usuarios a eventos
+CREATE TABLE IF NOT EXISTS inscriptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  event_id UUID NOT NULL,
+  fecha_inscripcion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  
+  -- Claves foráneas
+  CONSTRAINT fk_inscriptions_user_id 
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_inscriptions_event_id 
+    FOREIGN KEY (event_id) REFERENCES eventos(id) ON DELETE CASCADE,
+  
+  -- Restricción única: un usuario no puede inscribirse dos veces al mismo evento
+  CONSTRAINT unique_user_event_inscription 
+    UNIQUE (user_id, event_id)
+);
+
+-- Índices para optimizar consultas
+CREATE INDEX IF NOT EXISTS idx_inscriptions_user_id ON inscriptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_inscriptions_event_id ON inscriptions(event_id);
+CREATE INDEX IF NOT EXISTS idx_inscriptions_fecha ON inscriptions(fecha_inscripcion);
+
+-- Comentarios
+COMMENT ON TABLE inscriptions IS 'Inscripciones de usuarios a eventos';
+COMMENT ON COLUMN inscriptions.id IS 'Identificador único de la inscripción';
+COMMENT ON COLUMN inscriptions.user_id IS 'ID del usuario que se inscribe';
+COMMENT ON COLUMN inscriptions.event_id IS 'ID del evento al que se inscribe';
+COMMENT ON COLUMN inscriptions.fecha_inscripcion IS 'Fecha y hora de la inscripción';
+COMMENT ON COLUMN inscriptions.created_at IS 'Fecha de creación del registro';
+COMMENT ON COLUMN inscriptions.updated_at IS 'Fecha de última actualización';
+
+-- Trigger para actualizar updated_at automáticamente
+CREATE OR REPLACE FUNCTION update_inscriptions_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = CURRENT_TIMESTAMP;
+  RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER update_inscriptions_updated_at 
+  BEFORE UPDATE ON inscriptions 
+  FOR EACH ROW 
+  EXECUTE FUNCTION update_inscriptions_updated_at_column();

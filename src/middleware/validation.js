@@ -591,6 +591,61 @@ const validateProfile = (req, res, next) => {
   next();
 };
 
+// =============================================
+// VALIDACIÓN DE INSCRIPCIONES
+// =============================================
+
+// Validar parámetros de paginación para inscripciones
+const validateInscriptionPagination = (req, res, next) => {
+  const { page, limit } = req.query;
+  const errors = [];
+
+  // Validar page
+  if (page !== undefined) {
+    const pageNum = parseInt(page);
+    if (isNaN(pageNum) || pageNum < 1) {
+      errors.push('El parámetro page debe ser un número entero mayor a 0');
+    } else {
+      req.query.page = pageNum;
+    }
+  }
+
+  // Validar limit
+  if (limit !== undefined) {
+    const limitNum = parseInt(limit);
+    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+      errors.push('El parámetro limit debe ser un número entero entre 1 y 100');
+    } else {
+      req.query.limit = limitNum;
+    }
+  }
+
+  if (errors.length > 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'Errores de validación en parámetros de paginación',
+      errors
+    });
+  }
+
+  next();
+};
+
+// Validar UUID de evento
+const validateEventId = (req, res, next) => {
+  const { id } = req.params;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  
+  if (!uuidRegex.test(id)) {
+    return res.status(400).json({
+      success: false,
+      message: 'ID de evento inválido. Debe ser un UUID válido'
+    });
+  }
+
+  next();
+};
+
 module.exports = {
   validateRegister,
   validateLogin,
@@ -598,5 +653,7 @@ module.exports = {
   validateEvent,
   validateEventUpdate,
   validateEventFilters,
-  validateProfile
+  validateProfile,
+  validateInscriptionPagination,
+  validateEventId
 };
