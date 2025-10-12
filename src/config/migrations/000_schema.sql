@@ -540,3 +540,145 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Nota: Estos son datos de ejemplo para desarrollo.
 -- En producción, estos datos pueden ser eliminados o reemplazados por datos reales.
+
+-- =============================================
+-- TABLA: EVALUATIONS (EVALUACIONES)
+-- =============================================
+
+-- Crear tabla de evaluaciones de eventos
+CREATE TABLE IF NOT EXISTS evaluations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  evento_id UUID NOT NULL,
+  usuario_id UUID NOT NULL,
+  respuestas JSONB NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  
+  -- Claves foráneas
+  CONSTRAINT fk_evaluations_evento_id 
+    FOREIGN KEY (evento_id) REFERENCES eventos(id) ON DELETE CASCADE,
+  CONSTRAINT fk_evaluations_usuario_id 
+    FOREIGN KEY (usuario_id) REFERENCES users(id) ON DELETE CASCADE,
+  
+  -- Restricción única: un usuario solo puede evaluar un evento una vez
+  CONSTRAINT unique_user_event_evaluation 
+    UNIQUE (usuario_id, evento_id)
+);
+
+-- Índices para optimizar consultas
+CREATE INDEX IF NOT EXISTS idx_evaluations_evento_id ON evaluations(evento_id);
+CREATE INDEX IF NOT EXISTS idx_evaluations_usuario_id ON evaluations(usuario_id);
+CREATE INDEX IF NOT EXISTS idx_evaluations_created_at ON evaluations(created_at);
+CREATE INDEX IF NOT EXISTS idx_evaluations_respuestas ON evaluations USING GIN (respuestas);
+
+-- Comentarios
+COMMENT ON TABLE evaluations IS 'Evaluaciones de usuarios sobre eventos finalizados';
+COMMENT ON COLUMN evaluations.id IS 'Identificador único de la evaluación';
+COMMENT ON COLUMN evaluations.evento_id IS 'ID del evento evaluado';
+COMMENT ON COLUMN evaluations.usuario_id IS 'ID del usuario que evalúa';
+COMMENT ON COLUMN evaluations.respuestas IS 'JSON con todas las respuestas de la evaluación';
+COMMENT ON COLUMN evaluations.created_at IS 'Fecha de creación de la evaluación';
+COMMENT ON COLUMN evaluations.updated_at IS 'Fecha de última actualización';
+
+-- Trigger para actualizar updated_at automáticamente
+CREATE OR REPLACE FUNCTION update_evaluations_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = CURRENT_TIMESTAMP;
+  RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER update_evaluations_updated_at 
+  BEFORE UPDATE ON evaluations 
+  FOR EACH ROW 
+  EXECUTE FUNCTION update_evaluations_updated_at_column();
+
+-- =============================================
+-- FUNCIONES AUXILIARES PARA EVALUACIONES
+-- =============================================
+
+-- Función para verificar si un evento puede ser evaluado
+CREATE OR REPLACE FUNCTION can_evaluate_event(evento_id_param UUID)
+RETURNS BOOLEAN AS $$
+DECLARE
+  event_date TIMESTAMP;
+BEGIN
+  -- Obtener la fecha del evento
+  SELECT fecha_hora INTO event_date
+  FROM eventos 
+  WHERE id = evento_id_param AND activo = true;
+  
+  -- Si no existe el evento, retornar false
+  IF event_date IS NULL THEN
+    RETURN false;
+  END IF;
+  
+  -- El evento puede ser evaluado si ya pasó su fecha
+  RETURN event_date <= CURRENT_TIMESTAMP;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Función para obtener estadísticas de evaluaciones de un evento
+CREATE OR REPLACE FUNCTION get_event_evaluation_stats(evento_id_param UUID)
+RETURNS TABLE (
+  total_evaluaciones BIGINT,
+  promedio_calificacion_general NUMERIC,
+  promedio_cumplio_expectativas NUMERIC,
+  promedio_recomendacion NUMERIC,
+  promedio_calidad_contenido NUMERIC,
+  promedio_claridad_presentacion NUMERIC,
+  promedio_utilidad_contenido NUMERIC,
+  promedio_organizacion NUMERIC,
+  promedio_aprendizaje NUMERIC,
+  promedio_desarrollo_habilidades NUMERIC,
+  promedio_aplicacion NUMERIC,
+  promedio_motivacion NUMERIC,
+  promedio_interes_futuro NUMERIC
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    COUNT(*) as total_evaluaciones,
+    AVG((respuestas->>'pregunta_1')::numeric) as promedio_calificacion_general,
+    AVG((respuestas->>'pregunta_2')::numeric) as promedio_cumplio_expectativas,
+    AVG((respuestas->>'pregunta_3')::numeric) as promedio_recomendacion,
+    AVG((respuestas->>'pregunta_4')::numeric) as promedio_calidad_contenido,
+    AVG((respuestas->>'pregunta_5')::numeric) as promedio_claridad_presentacion,
+    AVG((respuestas->>'pregunta_6')::numeric) as promedio_utilidad_contenido,
+    AVG((respuestas->>'pregunta_7')::numeric) as promedio_organizacion,
+    AVG((respuestas->>'pregunta_8')::numeric) as promedio_aprendizaje,
+    AVG((respuestas->>'pregunta_9')::numeric) as promedio_desarrollo_habilidades,
+    AVG((respuestas->>'pregunta_10')::numeric) as promedio_aplicacion,
+    AVG((respuestas->>'pregunta_11')::numeric) as promedio_motivacion,
+    AVG((respuestas->>'pregunta_12')::numeric) as promedio_interes_futuro
+  FROM evaluations 
+  WHERE evento_id = evento_id_param;
+END;
+$$ LANGUAGE plpgsql;
+
+-- =============================================
+-- VISTAS ÚTILES PARA REPORTES
+-- =============================================
+
+-- Vista para obtener eventos con sus estadísticas de evaluación
+CREATE OR REPLACE VIEW eventos_con_evaluaciones AS
+SELECT 
+  e.id,
+  e.titulo,
+  e.descripcion,
+  e.fecha_hora,
+  e.modalidad,
+  e.created_by,
+  u.nombre as creador_nombre,
+  COALESCE(stats.total_evaluaciones, 0) as total_evaluaciones,
+  COALESCE(stats.promedio_calificacion_general, 0) as promedio_calificacion_general,
+  COALESCE(stats.promedio_cumplio_expectativas, 0) as promedio_cumplio_expectativas,
+  COALESCE(stats.promedio_recomendacion, 0) as promedio_recomendacion
+FROM eventos e
+LEFT JOIN users u ON e.created_by = u.id
+LEFT JOIN LATERAL get_event_evaluation_stats(e.id) stats ON true
+WHERE e.activo = true;
+
+-- Comentarios para la vista
+COMMENT ON VIEW eventos_con_evaluaciones IS 'Vista que muestra eventos con sus estadísticas de evaluación';

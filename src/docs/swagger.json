@@ -2501,6 +2501,362 @@
           "404": { "description": "Alianza no encontrada" }
         }
       }
+    },
+    "/api/preguntas-evaluaciones": {
+      "get": {
+        "summary": "Obtener preguntas de evaluación predefinidas",
+        "description": "Obtiene las 15 preguntas predefinidas para evaluar eventos. Las preguntas son las mismas para todos los eventos.",
+        "tags": ["Evaluations"],
+        "responses": {
+          "200": {
+            "description": "Preguntas obtenidas exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string" },
+                          "pregunta": { "type": "string" },
+                          "tipo": { "type": "string", "enum": ["escala", "texto"] },
+                          "opciones": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "valor": { "type": "number" },
+                                "texto": { "type": "string" }
+                              }
+                            }
+                          },
+                          "requerida": { "type": "boolean" },
+                          "placeholder": { "type": "string" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
+    },
+    "/api/evaluaciones/can-evaluate/{evento_id}": {
+      "get": {
+        "summary": "Verificar si un usuario puede evaluar un evento",
+        "description": "Verifica si un usuario puede evaluar un evento específico. Verifica que el evento haya finalizado y que el usuario no haya evaluado ya.",
+        "tags": ["Evaluations"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "evento_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "ID del evento a evaluar"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Información sobre la capacidad de evaluar",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "puede_evaluar": { "type": "boolean" },
+                        "evento_finalizado": { "type": "boolean" },
+                        "ya_evaluado": { "type": "boolean" },
+                        "evento": {
+                          "type": "object",
+                          "properties": {
+                            "id": { "type": "string" },
+                            "titulo": { "type": "string" },
+                            "fecha_hora": { "type": "string", "format": "date-time" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "No autenticado" },
+          "404": { "description": "Evento no encontrado" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
+    },
+    "/api/evaluaciones": {
+      "post": {
+        "summary": "Crear una nueva evaluación",
+        "description": "Crea una nueva evaluación para un evento específico. El usuario solo puede evaluar un evento una vez.",
+        "tags": ["Evaluations"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "evento_id": { "type": "string", "format": "uuid" },
+                  "respuestas": {
+                    "type": "object",
+                    "properties": {
+                      "pregunta_1": { "type": "number", "minimum": 1, "maximum": 5 },
+                      "pregunta_2": { "type": "number", "minimum": 1, "maximum": 5 },
+                      "pregunta_3": { "type": "number", "minimum": 1, "maximum": 5 },
+                      "pregunta_4": { "type": "number", "minimum": 1, "maximum": 5 },
+                      "pregunta_5": { "type": "number", "minimum": 1, "maximum": 5 },
+                      "pregunta_6": { "type": "number", "minimum": 1, "maximum": 5 },
+                      "pregunta_7": { "type": "number", "minimum": 1, "maximum": 5 },
+                      "pregunta_8": { "type": "number", "minimum": 1, "maximum": 5 },
+                      "pregunta_9": { "type": "number", "minimum": 1, "maximum": 5 },
+                      "pregunta_10": { "type": "number", "minimum": 1, "maximum": 5 },
+                      "pregunta_11": { "type": "number", "minimum": 1, "maximum": 5 },
+                      "pregunta_12": { "type": "number", "minimum": 1, "maximum": 5 },
+                      "pregunta_13": { "type": "string", "maxLength": 1000 },
+                      "pregunta_14": { "type": "string", "maxLength": 1000 },
+                      "pregunta_15": { "type": "string", "maxLength": 1000 }
+                    },
+                    "required": ["pregunta_1", "pregunta_2", "pregunta_3", "pregunta_4", "pregunta_5", "pregunta_6", "pregunta_7", "pregunta_8", "pregunta_9", "pregunta_10", "pregunta_11", "pregunta_12"]
+                  }
+                },
+                "required": ["evento_id", "respuestas"]
+              },
+              "example": {
+                "evento_id": "123e4567-e89b-12d3-a456-426614174000",
+                "respuestas": {
+                  "pregunta_1": 5,
+                  "pregunta_2": 4,
+                  "pregunta_3": 5,
+                  "pregunta_4": 4,
+                  "pregunta_5": 5,
+                  "pregunta_6": 4,
+                  "pregunta_7": 5,
+                  "pregunta_8": 4,
+                  "pregunta_9": 5,
+                  "pregunta_10": 4,
+                  "pregunta_11": 5,
+                  "pregunta_12": 4,
+                  "pregunta_13": "Lo que más me gustó fue el contenido técnico",
+                  "pregunta_14": "Se podría mejorar la duración",
+                  "pregunta_15": "Sugiero más ejemplos prácticos"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Evaluación creada exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string" },
+                        "evento_id": { "type": "string" },
+                        "usuario_id": { "type": "string" },
+                        "respuestas": { "type": "object" },
+                        "created_at": { "type": "string", "format": "date-time" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Datos inválidos o evento no finalizado" },
+          "401": { "description": "No autenticado" },
+          "404": { "description": "Evento no encontrado" },
+          "409": { "description": "Ya has evaluado este evento" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
+    },
+    "/api/evaluaciones/user": {
+      "get": {
+        "summary": "Obtener evaluaciones del usuario autenticado",
+        "description": "Obtiene todas las evaluaciones realizadas por el usuario autenticado.",
+        "tags": ["Evaluations"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Evaluaciones obtenidas exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string" },
+                          "evento_id": { "type": "string" },
+                          "usuario_id": { "type": "string" },
+                          "respuestas": { "type": "object" },
+                          "created_at": { "type": "string", "format": "date-time" },
+                          "evento_titulo": { "type": "string" },
+                          "evento_fecha": { "type": "string", "format": "date-time" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "No autenticado" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
+    },
+    "/api/evaluaciones/event/{evento_id}": {
+      "get": {
+        "summary": "Obtener evaluaciones de un evento específico",
+        "description": "Obtiene todas las evaluaciones de un evento específico. Solo el creador del evento puede acceder a esta información.",
+        "tags": ["Evaluations"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "evento_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "ID del evento"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Evaluaciones del evento obtenidas exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string" },
+                          "evento_id": { "type": "string" },
+                          "usuario_id": { "type": "string" },
+                          "respuestas": { "type": "object" },
+                          "created_at": { "type": "string", "format": "date-time" },
+                          "nombre": { "type": "string" },
+                          "email": { "type": "string" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "No autenticado" },
+          "403": { "description": "No tienes permisos para ver las evaluaciones de este evento" },
+          "404": { "description": "Evento no encontrado" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
+    },
+    "/api/evaluaciones/stats/{evento_id}": {
+      "get": {
+        "summary": "Obtener estadísticas de evaluaciones de un evento",
+        "description": "Obtiene estadísticas detalladas y respuestas abiertas de un evento. Solo el creador del evento puede acceder a esta información.",
+        "tags": ["Evaluations"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "evento_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "ID del evento"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Estadísticas obtenidas exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "estadisticas": {
+                          "type": "object",
+                          "properties": {
+                            "total_evaluaciones": { "type": "number" },
+                            "promedio_calificacion_general": { "type": "number" },
+                            "promedio_cumplio_expectativas": { "type": "number" },
+                            "promedio_recomendacion": { "type": "number" },
+                            "promedio_calidad_contenido": { "type": "number" },
+                            "promedio_claridad_presentacion": { "type": "number" },
+                            "promedio_utilidad_contenido": { "type": "number" },
+                            "promedio_organizacion": { "type": "number" },
+                            "promedio_aprendizaje": { "type": "number" },
+                            "promedio_desarrollo_habilidades": { "type": "number" },
+                            "promedio_aplicacion": { "type": "number" },
+                            "promedio_motivacion": { "type": "number" },
+                            "promedio_interes_futuro": { "type": "number" }
+                          }
+                        },
+                        "respuestas_abiertas": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": { "type": "string" },
+                              "created_at": { "type": "string", "format": "date-time" },
+                              "nombre": { "type": "string" },
+                              "email": { "type": "string" },
+                              "lo_que_mas_gusto": { "type": "string" },
+                              "aspectos_mejorar": { "type": "string" },
+                              "sugerencias": { "type": "string" }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "No autenticado" },
+          "403": { "description": "No tienes permisos para ver las estadísticas de este evento" },
+          "404": { "description": "Evento no encontrado" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
     }
   },
   "components": {

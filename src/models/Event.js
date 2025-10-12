@@ -343,6 +343,46 @@ class Event {
     return result.rows.map(row => new Event(row));
   }
 
+  // Obtener eventos finalizados (para evaluaciones)
+  static async getFinishedEvents(limit = 10) {
+    const queryText = `
+      SELECT e.*, u.nombre as created_by_name
+      FROM eventos e
+      LEFT JOIN users u ON e.created_by = u.id
+      WHERE e.activo = true AND e.fecha_hora <= NOW()
+      ORDER BY e.fecha_hora DESC
+      LIMIT $1
+    `;
+
+    const result = await query(queryText, [limit]);
+    return result.rows.map(row => new Event(row));
+  }
+
+  // Verificar si un evento ha finalizado
+  isFinished() {
+    const now = new Date();
+    const eventDate = new Date(this.fecha_hora);
+    return eventDate <= now;
+  }
+
+  // Obtener eventos finalizados por usuario (para mostrar en perfil)
+  static async getFinishedEventsByUser(userId, limit = 10) {
+    const queryText = `
+      SELECT DISTINCT e.*, u.nombre as created_by_name
+      FROM eventos e
+      LEFT JOIN users u ON e.created_by = u.id
+      LEFT JOIN inscriptions i ON e.id = i.event_id
+      WHERE e.activo = true 
+        AND e.fecha_hora <= NOW()
+        AND (e.created_by = $1 OR i.user_id = $1)
+      ORDER BY e.fecha_hora DESC
+      LIMIT $2
+    `;
+
+    const result = await query(queryText, [userId, limit]);
+    return result.rows.map(row => new Event(row));
+  }
+
   // Verificar si un usuario puede editar el evento
   canEdit(userId) {
     return this.created_by === userId;
