@@ -842,10 +842,10 @@ const validatePartner = (req, res, next) => {
     } else if (sitio_web.trim().length > 200) {
       errors.push('El sitio web no puede exceder 200 caracteres');
     } else {
-      // Validación básica de formato URL
-      const urlRegex = /^https?:\/\/.+/;
+      // Validación más flexible de formato URL
+      const urlRegex = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
       if (!urlRegex.test(sitio_web.trim())) {
-        errors.push('El sitio web debe ser una URL válida (http:// o https://)');
+        errors.push('El sitio web debe ser una URL válida');
       }
     }
   }
@@ -867,7 +867,13 @@ const validatePartner = (req, res, next) => {
   req.body.nombre = nombre.trim();
   req.body.descripcion = descripcion.trim();
   if (logo_url) req.body.logo_url = logo_url.trim();
-  if (sitio_web) req.body.sitio_web = sitio_web.trim();
+  if (sitio_web) {
+    let cleanUrl = sitio_web.trim();
+    if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+      cleanUrl = 'https://' + cleanUrl;
+    }
+    req.body.sitio_web = cleanUrl;
+  }
 
   next();
 };
