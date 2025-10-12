@@ -10,8 +10,12 @@ const REFRESH_TOKEN_EXPIRES_IN = '7d';
 
 // Generar tokens
 const generateTokens = async (userId) => {
+  // Obtener el rol del usuario
+  const userResult = await query('SELECT rol FROM users WHERE id = $1', [userId]);
+  const rol = userResult.rows.length > 0 ? userResult.rows[0].rol : undefined;
+
   const accessToken = jwt.sign(
-    { userId, type: 'access' },
+    { userId, rol, type: 'access' },
     JWT_ACCESS_SECRET,
     { expiresIn: ACCESS_TOKEN_EXPIRES_IN }
   );
