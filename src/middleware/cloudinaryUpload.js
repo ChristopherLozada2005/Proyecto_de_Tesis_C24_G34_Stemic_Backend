@@ -138,7 +138,7 @@ const handleEventImageUpload = (req, res, next) => {
 
     // Si se subió archivo, agregar URL al body
     if (req.file) {
-      req.body.avatar_url = req.file.path;
+      req.body.imagen_url = req.file.path;
       req.uploadedFile = {
         url: req.file.path,
         publicId: req.file.filename
