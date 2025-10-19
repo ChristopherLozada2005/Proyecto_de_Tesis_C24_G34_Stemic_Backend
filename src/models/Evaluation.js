@@ -79,7 +79,7 @@ class Evaluation {
   // Obtener todas las evaluaciones de un evento
   static async findByEvent(evento_id) {
     const queryText = `
-      SELECT e.*, u.nombre, u.email
+      SELECT e.*, u.nombre, u.correo
       FROM evaluations e
       JOIN users u ON e.usuario_id = u.id
       WHERE e.evento_id = $1
@@ -133,7 +133,7 @@ class Evaluation {
         e.id,
         e.created_at,
         u.nombre,
-        u.email,
+        u.correo,
         respuestas->>'pregunta_13' as lo_que_mas_gusto,
         respuestas->>'pregunta_14' as aspectos_mejorar,
         respuestas->>'pregunta_15' as sugerencias

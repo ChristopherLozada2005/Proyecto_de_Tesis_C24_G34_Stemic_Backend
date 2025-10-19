@@ -306,13 +306,12 @@ const getUserEvaluations = async (req, res) => {
   }
 };
 
-// Obtener evaluaciones de un evento (solo para creadores del evento)
+// Obtener evaluaciones de un evento (solo para organizadores y admins)
 const getEventEvaluations = async (req, res) => {
   try {
     const { evento_id } = req.params;
-    const usuario_id = req.user.id;
 
-    // Verificar que el usuario es el creador del evento
+    // Verificar que el evento existe
     const evento = await Event.findById(evento_id);
     if (!evento) {
       return res.status(404).json({
@@ -321,12 +320,8 @@ const getEventEvaluations = async (req, res) => {
       });
     }
 
-    if (evento.created_by !== usuario_id) {
-      return res.status(403).json({
-        success: false,
-        message: 'No tienes permisos para ver las evaluaciones de este evento'
-      });
-    }
+    // Los permisos de rol ya se validaron en el middleware requireOrganizadorOrAdmin
+    // Cualquier organizador o admin puede ver las evaluaciones de cualquier evento
 
     const evaluations = await Evaluation.findByEvent(evento_id);
 
@@ -343,13 +338,12 @@ const getEventEvaluations = async (req, res) => {
   }
 };
 
-// Obtener estadísticas de evaluaciones de un evento
+// Obtener estadísticas de evaluaciones de un evento (solo para organizadores y admins)
 const getEventStats = async (req, res) => {
   try {
     const { evento_id } = req.params;
-    const usuario_id = req.user.id;
 
-    // Verificar que el usuario es el creador del evento
+    // Verificar que el evento existe
     const evento = await Event.findById(evento_id);
     if (!evento) {
       return res.status(404).json({
@@ -358,12 +352,8 @@ const getEventStats = async (req, res) => {
       });
     }
 
-    if (evento.created_by !== usuario_id) {
-      return res.status(403).json({
-        success: false,
-        message: 'No tienes permisos para ver las estadísticas de este evento'
-      });
-    }
+    // Los permisos de rol ya se validaron en el middleware requireOrganizadorOrAdmin
+    // Cualquier organizador o admin puede ver las estadísticas de cualquier evento
 
     const stats = await Evaluation.getEventStats(evento_id);
     const openResponses = await Evaluation.getOpenResponses(evento_id);

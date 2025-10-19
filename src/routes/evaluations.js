@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const evaluationController = require('../controllers/evaluationController');
 const { authenticateToken } = require('../middleware/auth');
+const { requireOrganizadorOrAdmin } = require('../middleware/roleAuth');
 
 // Obtener preguntas de evaluación (público)
 router.get('/preguntas-evaluaciones', evaluationController.getEvaluationQuestions);
@@ -15,10 +16,10 @@ router.post('/evaluaciones', authenticateToken, evaluationController.createEvalu
 // Obtener evaluaciones del usuario autenticado
 router.get('/evaluaciones/user', authenticateToken, evaluationController.getUserEvaluations);
 
-// Obtener evaluaciones de un evento específico (solo creador del evento)
-router.get('/evaluaciones/event/:evento_id', authenticateToken, evaluationController.getEventEvaluations);
+// Obtener evaluaciones de un evento específico (solo organizadores y admins)
+router.get('/evaluaciones/event/:evento_id', authenticateToken, requireOrganizadorOrAdmin, evaluationController.getEventEvaluations);
 
-// Obtener estadísticas de evaluaciones de un evento (solo creador del evento)
-router.get('/evaluaciones/stats/:evento_id', authenticateToken, evaluationController.getEventStats);
+// Obtener estadísticas de evaluaciones de un evento (solo organizadores y admins)
+router.get('/evaluaciones/stats/:evento_id', authenticateToken, requireOrganizadorOrAdmin, evaluationController.getEventStats);
 
 module.exports = router;
