@@ -3,6 +3,8 @@ const puppeteer = require('puppeteer');
 const { query } = require('../config/database');
 const Event = require('../models/Event');
 const Evaluation = require('../models/Evaluation');
+const ReportGeneration = require('../models/ReportGeneration');
+const ReportDataCache = require('../models/ReportDataCache');
 
 class ReportController {
   // =============================================
@@ -489,7 +491,7 @@ class ReportController {
   // =============================================
 
   // Obtener datos de participación (para vista previa)
-  static async getParticipationData(req, res) {
+  static async getParticipationDataPreview(req, res) {
     try {
       const filters = {
         evento_id: req.query.evento_id,
@@ -498,14 +500,33 @@ class ReportController {
         modalidad: req.query.modalidad
       };
 
-      const data = await ReportController.getParticipationData(filters);
+      let data;
+      let source = 'realtime';
+
+      // Si se especifica un evento específico, intentar usar cache
+      if (filters.evento_id) {
+        const cacheResult = await ReportDataCache.getReportDataWithFallback(
+          filters.evento_id, 
+          'participation',
+          async (eventoId) => {
+            return await ReportController.getParticipationData({ evento_id: eventoId });
+          }
+        );
+        
+        data = cacheResult.data;
+        source = cacheResult.source;
+      } else {
+        // Para consultas generales, usar tiempo real
+        data = await ReportController.getParticipationData(filters);
+      }
       
       res.json({
         success: true,
         data: data,
         meta: {
           total: data.length,
-          filters: filters
+          filters: filters,
+          source: source
         }
       });
     } catch (error) {
@@ -518,7 +539,7 @@ class ReportController {
   }
 
   // Obtener datos de satisfacción (para vista previa)
-  static async getSatisfactionData(req, res) {
+  static async getSatisfactionDataPreview(req, res) {
     try {
       const filters = {
         evento_id: req.query.evento_id,
@@ -527,14 +548,33 @@ class ReportController {
         modalidad: req.query.modalidad
       };
 
-      const data = await ReportController.getSatisfactionData(filters);
+      let data;
+      let source = 'realtime';
+
+      // Si se especifica un evento específico, intentar usar cache
+      if (filters.evento_id) {
+        const cacheResult = await ReportDataCache.getReportDataWithFallback(
+          filters.evento_id, 
+          'satisfaction',
+          async (eventoId) => {
+            return await ReportController.getSatisfactionData({ evento_id: eventoId });
+          }
+        );
+        
+        data = cacheResult.data;
+        source = cacheResult.source;
+      } else {
+        // Para consultas generales, usar tiempo real
+        data = await ReportController.getSatisfactionData(filters);
+      }
       
       res.json({
         success: true,
         data: data,
         meta: {
           total: data.length,
-          filters: filters
+          filters: filters,
+          source: source
         }
       });
     } catch (error) {
@@ -548,6 +588,9 @@ class ReportController {
 
   // Exportar reporte de participación en Excel
   static async exportParticipationExcel(req, res) {
+    const startTime = Date.now();
+    let reportGeneration = null;
+
     try {
       const filters = {
         evento_id: req.query.evento_id,
@@ -556,15 +599,40 @@ class ReportController {
         modalidad: req.query.modalidad
       };
 
+      const fileName = `reporte_participacion_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+      // Crear registro de generación
+      reportGeneration = await ReportGeneration.create({
+        user_id: req.user.id,
+        report_type: 'participation',
+        report_format: 'excel',
+        filters: filters,
+        file_name: fileName,
+        status: 'processing'
+      });
+
       const workbook = await ReportController.generateParticipationExcel(filters);
       
+      // Calcular métricas
+      const generationTime = Date.now() - startTime;
+      const buffer = await workbook.xlsx.writeBuffer();
+      const fileSize = buffer.length;
+
+      // Actualizar métricas en la base de datos
+      await ReportGeneration.updateMetrics(reportGeneration.id, fileSize, generationTime);
+
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', `attachment; filename="reporte_participacion_${new Date().toISOString().split('T')[0]}.xlsx"`);
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
       
-      await workbook.xlsx.write(res);
-      res.end();
+      res.send(buffer);
     } catch (error) {
       console.error('Error al exportar reporte de participación Excel:', error);
+      
+      // Actualizar estado de error si existe el registro
+      if (reportGeneration) {
+        await ReportGeneration.updateStatus(reportGeneration.id, 'failed', error.message);
+      }
+
       res.status(500).json({
         success: false,
         message: 'Error interno del servidor'
@@ -574,6 +642,9 @@ class ReportController {
 
   // Exportar reporte de participación en PDF
   static async exportParticipationPDF(req, res) {
+    const startTime = Date.now();
+    let reportGeneration = null;
+
     try {
       const filters = {
         evento_id: req.query.evento_id,
@@ -582,14 +653,39 @@ class ReportController {
         modalidad: req.query.modalidad
       };
 
+      const fileName = `reporte_participacion_${new Date().toISOString().split('T')[0]}.pdf`;
+
+      // Crear registro de generación
+      reportGeneration = await ReportGeneration.create({
+        user_id: req.user.id,
+        report_type: 'participation',
+        report_format: 'pdf',
+        filters: filters,
+        file_name: fileName,
+        status: 'processing'
+      });
+
       const pdf = await ReportController.generateParticipationPDF(filters);
       
+      // Calcular métricas
+      const generationTime = Date.now() - startTime;
+      const fileSize = pdf.length;
+
+      // Actualizar métricas en la base de datos
+      await ReportGeneration.updateMetrics(reportGeneration.id, fileSize, generationTime);
+
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="reporte_participacion_${new Date().toISOString().split('T')[0]}.pdf"`);
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
       
       res.send(pdf);
     } catch (error) {
       console.error('Error al exportar reporte de participación PDF:', error);
+      
+      // Actualizar estado de error si existe el registro
+      if (reportGeneration) {
+        await ReportGeneration.updateStatus(reportGeneration.id, 'failed', error.message);
+      }
+
       res.status(500).json({
         success: false,
         message: 'Error interno del servidor'
@@ -599,6 +695,9 @@ class ReportController {
 
   // Exportar reporte de satisfacción en Excel
   static async exportSatisfactionExcel(req, res) {
+    const startTime = Date.now();
+    let reportGeneration = null;
+
     try {
       const filters = {
         evento_id: req.query.evento_id,
@@ -607,15 +706,40 @@ class ReportController {
         modalidad: req.query.modalidad
       };
 
+      const fileName = `reporte_satisfaccion_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+      // Crear registro de generación
+      reportGeneration = await ReportGeneration.create({
+        user_id: req.user.id,
+        report_type: 'satisfaction',
+        report_format: 'excel',
+        filters: filters,
+        file_name: fileName,
+        status: 'processing'
+      });
+
       const workbook = await ReportController.generateSatisfactionExcel(filters);
       
+      // Calcular métricas
+      const generationTime = Date.now() - startTime;
+      const buffer = await workbook.xlsx.writeBuffer();
+      const fileSize = buffer.length;
+
+      // Actualizar métricas en la base de datos
+      await ReportGeneration.updateMetrics(reportGeneration.id, fileSize, generationTime);
+
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', `attachment; filename="reporte_satisfaccion_${new Date().toISOString().split('T')[0]}.xlsx"`);
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
       
-      await workbook.xlsx.write(res);
-      res.end();
+      res.send(buffer);
     } catch (error) {
       console.error('Error al exportar reporte de satisfacción Excel:', error);
+      
+      // Actualizar estado de error si existe el registro
+      if (reportGeneration) {
+        await ReportGeneration.updateStatus(reportGeneration.id, 'failed', error.message);
+      }
+
       res.status(500).json({
         success: false,
         message: 'Error interno del servidor'
@@ -625,6 +749,9 @@ class ReportController {
 
   // Exportar reporte de satisfacción en PDF
   static async exportSatisfactionPDF(req, res) {
+    const startTime = Date.now();
+    let reportGeneration = null;
+
     try {
       const filters = {
         evento_id: req.query.evento_id,
@@ -633,14 +760,283 @@ class ReportController {
         modalidad: req.query.modalidad
       };
 
+      const fileName = `reporte_satisfaccion_${new Date().toISOString().split('T')[0]}.pdf`;
+
+      // Crear registro de generación
+      reportGeneration = await ReportGeneration.create({
+        user_id: req.user.id,
+        report_type: 'satisfaction',
+        report_format: 'pdf',
+        filters: filters,
+        file_name: fileName,
+        status: 'processing'
+      });
+
       const pdf = await ReportController.generateSatisfactionPDF(filters);
       
+      // Calcular métricas
+      const generationTime = Date.now() - startTime;
+      const fileSize = pdf.length;
+
+      // Actualizar métricas en la base de datos
+      await ReportGeneration.updateMetrics(reportGeneration.id, fileSize, generationTime);
+
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="reporte_satisfaccion_${new Date().toISOString().split('T')[0]}.pdf"`);
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
       
       res.send(pdf);
     } catch (error) {
       console.error('Error al exportar reporte de satisfacción PDF:', error);
+      
+      // Actualizar estado de error si existe el registro
+      if (reportGeneration) {
+        await ReportGeneration.updateStatus(reportGeneration.id, 'failed', error.message);
+      }
+
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor'
+      });
+    }
+  }
+
+  // =============================================
+  // GESTIÓN DE HISTORIAL DE REPORTES
+  // =============================================
+
+  // Obtener historial de reportes del usuario
+  static async getReportHistory(req, res) {
+    try {
+      const filters = {
+        report_type: req.query.report_type,
+        report_format: req.query.report_format,
+        status: req.query.status,
+        fecha_desde: req.query.fecha_desde,
+        fecha_hasta: req.query.fecha_hasta,
+        limit: parseInt(req.query.limit) || 20,
+        offset: parseInt(req.query.offset) || 0
+      };
+
+      const reports = await ReportGeneration.findByUser(req.user.id, filters);
+      
+      res.json({
+        success: true,
+        data: reports.map(report => report.toJSONWithUser()),
+        meta: {
+          total: reports.length,
+          filters: filters
+        }
+      });
+    } catch (error) {
+      console.error('Error al obtener historial de reportes:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor'
+      });
+    }
+  }
+
+  // Obtener estadísticas de reportes del usuario
+  static async getReportStats(req, res) {
+    try {
+      const filters = {
+        fecha_desde: req.query.fecha_desde,
+        fecha_hasta: req.query.fecha_hasta
+      };
+
+      const stats = await ReportGeneration.getStats({
+        user_id: req.user.id,
+        ...filters
+      });
+      
+      res.json({
+        success: true,
+        data: stats
+      });
+    } catch (error) {
+      console.error('Error al obtener estadísticas de reportes:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor'
+      });
+    }
+  }
+
+  // Obtener todos los reportes (solo para admins)
+  static async getAllReports(req, res) {
+    try {
+      const filters = {
+        user_id: req.query.user_id,
+        report_type: req.query.report_type,
+        report_format: req.query.report_format,
+        status: req.query.status,
+        fecha_desde: req.query.fecha_desde,
+        fecha_hasta: req.query.fecha_hasta,
+        limit: parseInt(req.query.limit) || 50,
+        offset: parseInt(req.query.offset) || 0
+      };
+
+      const reports = await ReportGeneration.findAll(filters);
+      
+      res.json({
+        success: true,
+        data: reports.map(report => report.toJSONWithUser()),
+        meta: {
+          total: reports.length,
+          filters: filters
+        }
+      });
+    } catch (error) {
+      console.error('Error al obtener todos los reportes:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor'
+      });
+    }
+  }
+
+  // Obtener estadísticas generales de reportes (solo para admins)
+  static async getGeneralReportStats(req, res) {
+    try {
+      const filters = {
+        fecha_desde: req.query.fecha_desde,
+        fecha_hasta: req.query.fecha_hasta
+      };
+
+      const stats = await ReportGeneration.getStats(filters);
+      
+      res.json({
+        success: true,
+        data: stats
+      });
+    } catch (error) {
+      console.error('Error al obtener estadísticas generales de reportes:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor'
+      });
+    }
+  }
+
+  // =============================================
+  // GESTIÓN DE CACHE DE REPORTES
+  // =============================================
+
+  // Obtener estadísticas del cache
+  static async getCacheStats(req, res) {
+    try {
+      const stats = await ReportDataCache.getCacheStats();
+      
+      res.json({
+        success: true,
+        data: stats
+      });
+    } catch (error) {
+      console.error('Error al obtener estadísticas del cache:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor'
+      });
+    }
+  }
+
+  // Forzar actualización de datos de un evento
+  static async forceUpdateEventData(req, res) {
+    try {
+      const { evento_id } = req.params;
+      const { report_type } = req.body;
+
+      if (!evento_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'ID de evento requerido'
+        });
+      }
+
+      if (report_type && !['participation', 'satisfaction'].includes(report_type)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Tipo de reporte inválido. Debe ser "participation" o "satisfaction"'
+        });
+      }
+
+      if (report_type) {
+        // Actualizar tipo específico
+        const result = await ReportDataCache.forceUpdate(evento_id, report_type);
+        res.json({
+          success: true,
+          message: `Datos de ${report_type} actualizados para el evento`,
+          data: result
+        });
+      } else {
+        // Actualizar ambos tipos
+        const participationResult = await ReportDataCache.forceUpdate(evento_id, 'participation');
+        const satisfactionResult = await ReportDataCache.forceUpdate(evento_id, 'satisfaction');
+        
+        res.json({
+          success: true,
+          message: 'Datos de ambos tipos actualizados para el evento',
+          data: {
+            participation: participationResult,
+            satisfaction: satisfactionResult
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error al forzar actualización:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor'
+      });
+    }
+  }
+
+  // Limpiar datos obsoletos del cache
+  static async cleanStaleData(req, res) {
+    try {
+      const { days_old = 30 } = req.body;
+      
+      const result = await ReportDataCache.cleanStaleData(days_old);
+      
+      res.json({
+        success: true,
+        message: `Se eliminaron ${result.deleted_count} entradas obsoletas del cache`,
+        data: result
+      });
+    } catch (error) {
+      console.error('Error al limpiar datos obsoletos:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor'
+      });
+    }
+  }
+
+  // Obtener datos del cache con filtros
+  static async getCacheData(req, res) {
+    try {
+      const filters = {
+        report_type: req.query.report_type,
+        evento_id: req.query.evento_id,
+        is_stale: req.query.is_stale === 'true' ? true : req.query.is_stale === 'false' ? false : undefined,
+        fecha_desde: req.query.fecha_desde,
+        fecha_hasta: req.query.fecha_hasta,
+        limit: parseInt(req.query.limit) || 50,
+        offset: parseInt(req.query.offset) || 0
+      };
+
+      const data = await ReportDataCache.getReportDataWithFilters(filters);
+      
+      res.json({
+        success: true,
+        data: data.map(item => item.toJSONWithEvent()),
+        meta: {
+          total: data.length,
+          filters: filters
+        }
+      });
+    } catch (error) {
+      console.error('Error al obtener datos del cache:', error);
       res.status(500).json({
         success: false,
         message: 'Error interno del servidor'

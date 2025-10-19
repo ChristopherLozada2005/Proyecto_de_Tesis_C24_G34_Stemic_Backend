@@ -3274,6 +3274,586 @@
           "500": { "description": "Error interno del servidor" }
         }
       }
+    },
+    "/api/reports/history": {
+      "get": {
+        "summary": "Obtener historial de reportes del usuario",
+        "description": "Obtiene el historial de reportes generados por el usuario autenticado. Solo accesible para organizadores y admins.",
+        "tags": ["Reportes"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "report_type",
+            "in": "query",
+            "description": "Tipo de reporte",
+            "required": false,
+            "schema": { "type": "string", "enum": ["participation", "satisfaction"] }
+          },
+          {
+            "name": "report_format",
+            "in": "query",
+            "description": "Formato del reporte",
+            "required": false,
+            "schema": { "type": "string", "enum": ["excel", "pdf"] }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Estado del reporte",
+            "required": false,
+            "schema": { "type": "string", "enum": ["pending", "processing", "completed", "failed"] }
+          },
+          {
+            "name": "fecha_desde",
+            "in": "query",
+            "description": "Fecha de inicio del rango (YYYY-MM-DD)",
+            "required": false,
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "fecha_hasta",
+            "in": "query",
+            "description": "Fecha de fin del rango (YYYY-MM-DD)",
+            "required": false,
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Número máximo de resultados",
+            "required": false,
+            "schema": { "type": "integer", "default": 20 }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Número de resultados a omitir",
+            "required": false,
+            "schema": { "type": "integer", "default": 0 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Historial de reportes obtenido exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string" },
+                          "user_id": { "type": "string" },
+                          "user_name": { "type": "string" },
+                          "user_email": { "type": "string" },
+                          "report_type": { "type": "string" },
+                          "report_format": { "type": "string" },
+                          "filters": { "type": "object" },
+                          "file_name": { "type": "string" },
+                          "file_size": { "type": "integer" },
+                          "generation_time_ms": { "type": "integer" },
+                          "status": { "type": "string" },
+                          "error_message": { "type": "string" },
+                          "created_at": { "type": "string", "format": "date-time" },
+                          "updated_at": { "type": "string", "format": "date-time" }
+                        }
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "total": { "type": "number" },
+                        "filters": { "type": "object" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "No autenticado" },
+          "403": { "description": "Acceso denegado - Se requiere rol organizador o admin" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
+    },
+    "/api/reports/stats": {
+      "get": {
+        "summary": "Obtener estadísticas de reportes del usuario",
+        "description": "Obtiene estadísticas de reportes generados por el usuario autenticado. Solo accesible para organizadores y admins.",
+        "tags": ["Reportes"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "fecha_desde",
+            "in": "query",
+            "description": "Fecha de inicio del rango (YYYY-MM-DD)",
+            "required": false,
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "fecha_hasta",
+            "in": "query",
+            "description": "Fecha de fin del rango (YYYY-MM-DD)",
+            "required": false,
+            "schema": { "type": "string", "format": "date" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Estadísticas de reportes obtenidas exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "total_generations": { "type": "integer" },
+                        "participation_reports": { "type": "integer" },
+                        "satisfaction_reports": { "type": "integer" },
+                        "excel_reports": { "type": "integer" },
+                        "pdf_reports": { "type": "integer" },
+                        "completed_reports": { "type": "integer" },
+                        "failed_reports": { "type": "integer" },
+                        "avg_generation_time_ms": { "type": "number" },
+                        "total_file_size_bytes": { "type": "integer" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "No autenticado" },
+          "403": { "description": "Acceso denegado - Se requiere rol organizador o admin" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
+    },
+    "/api/reports/admin/all": {
+      "get": {
+        "summary": "Obtener todos los reportes del sistema",
+        "description": "Obtiene todos los reportes generados en el sistema. Solo accesible para admins.",
+        "tags": ["Reportes - Admin"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "query",
+            "description": "ID del usuario específico",
+            "required": false,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "report_type",
+            "in": "query",
+            "description": "Tipo de reporte",
+            "required": false,
+            "schema": { "type": "string", "enum": ["participation", "satisfaction"] }
+          },
+          {
+            "name": "report_format",
+            "in": "query",
+            "description": "Formato del reporte",
+            "required": false,
+            "schema": { "type": "string", "enum": ["excel", "pdf"] }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Estado del reporte",
+            "required": false,
+            "schema": { "type": "string", "enum": ["pending", "processing", "completed", "failed"] }
+          },
+          {
+            "name": "fecha_desde",
+            "in": "query",
+            "description": "Fecha de inicio del rango (YYYY-MM-DD)",
+            "required": false,
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "fecha_hasta",
+            "in": "query",
+            "description": "Fecha de fin del rango (YYYY-MM-DD)",
+            "required": false,
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Número máximo de resultados",
+            "required": false,
+            "schema": { "type": "integer", "default": 50 }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Número de resultados a omitir",
+            "required": false,
+            "schema": { "type": "integer", "default": 0 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Todos los reportes obtenidos exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string" },
+                          "user_id": { "type": "string" },
+                          "user_name": { "type": "string" },
+                          "user_email": { "type": "string" },
+                          "report_type": { "type": "string" },
+                          "report_format": { "type": "string" },
+                          "filters": { "type": "object" },
+                          "file_name": { "type": "string" },
+                          "file_size": { "type": "integer" },
+                          "generation_time_ms": { "type": "integer" },
+                          "status": { "type": "string" },
+                          "error_message": { "type": "string" },
+                          "created_at": { "type": "string", "format": "date-time" },
+                          "updated_at": { "type": "string", "format": "date-time" }
+                        }
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "total": { "type": "number" },
+                        "filters": { "type": "object" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "No autenticado" },
+          "403": { "description": "Acceso denegado - Se requiere rol admin" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
+    },
+    "/api/reports/admin/stats": {
+      "get": {
+        "summary": "Obtener estadísticas generales de reportes",
+        "description": "Obtiene estadísticas generales de todos los reportes del sistema. Solo accesible para admins.",
+        "tags": ["Reportes - Admin"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "fecha_desde",
+            "in": "query",
+            "description": "Fecha de inicio del rango (YYYY-MM-DD)",
+            "required": false,
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "fecha_hasta",
+            "in": "query",
+            "description": "Fecha de fin del rango (YYYY-MM-DD)",
+            "required": false,
+            "schema": { "type": "string", "format": "date" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Estadísticas generales obtenidas exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "total_generations": { "type": "integer" },
+                        "participation_reports": { "type": "integer" },
+                        "satisfaction_reports": { "type": "integer" },
+                        "excel_reports": { "type": "integer" },
+                        "pdf_reports": { "type": "integer" },
+                        "completed_reports": { "type": "integer" },
+                        "failed_reports": { "type": "integer" },
+                        "avg_generation_time_ms": { "type": "number" },
+                        "total_file_size_bytes": { "type": "integer" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "No autenticado" },
+          "403": { "description": "Acceso denegado - Se requiere rol admin" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
+    },
+    "/api/reports/cache/stats": {
+      "get": {
+        "summary": "Obtener estadísticas del cache de reportes",
+        "description": "Obtiene estadísticas del sistema de cache de reportes, incluyendo total de entradas, datos frescos y obsoletos por tipo de reporte.",
+        "tags": ["Reportes"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Estadísticas del cache obtenidas exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "report_type": { "type": "string" },
+                          "total_entries": { "type": "integer" },
+                          "fresh_entries": { "type": "integer" },
+                          "stale_entries": { "type": "integer" },
+                          "oldest_entry": { "type": "string", "format": "date-time" },
+                          "newest_entry": { "type": "string", "format": "date-time" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "No autenticado" },
+          "403": { "description": "Acceso denegado - Se requiere rol organizador o admin" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
+    },
+    "/api/reports/cache/data": {
+      "get": {
+        "summary": "Obtener datos del cache con filtros",
+        "description": "Obtiene datos del cache de reportes con filtros opcionales para análisis y gestión.",
+        "tags": ["Reportes"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "report_type",
+            "in": "query",
+            "description": "Tipo de reporte",
+            "required": false,
+            "schema": { "type": "string", "enum": ["participation", "satisfaction"] }
+          },
+          {
+            "name": "evento_id",
+            "in": "query",
+            "description": "ID del evento específico",
+            "required": false,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "is_stale",
+            "in": "query",
+            "description": "Filtrar por datos obsoletos",
+            "required": false,
+            "schema": { "type": "boolean" }
+          },
+          {
+            "name": "fecha_desde",
+            "in": "query",
+            "description": "Fecha de inicio del rango (YYYY-MM-DD)",
+            "required": false,
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "fecha_hasta",
+            "in": "query",
+            "description": "Fecha de fin del rango (YYYY-MM-DD)",
+            "required": false,
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Número máximo de resultados",
+            "required": false,
+            "schema": { "type": "integer", "default": 50 }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Número de resultados a omitir",
+            "required": false,
+            "schema": { "type": "integer", "default": 0 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Datos del cache obtenidos exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string" },
+                          "evento_id": { "type": "string" },
+                          "evento_titulo": { "type": "string" },
+                          "report_type": { "type": "string" },
+                          "data": { "type": "object" },
+                          "last_updated": { "type": "string", "format": "date-time" },
+                          "is_stale": { "type": "boolean" },
+                          "created_at": { "type": "string", "format": "date-time" },
+                          "updated_at": { "type": "string", "format": "date-time" }
+                        }
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "total": { "type": "number" },
+                        "filters": { "type": "object" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "No autenticado" },
+          "403": { "description": "Acceso denegado - Se requiere rol organizador o admin" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
+    },
+    "/api/reports/cache/update/{evento_id}": {
+      "post": {
+        "summary": "Forzar actualización de datos de un evento",
+        "description": "Fuerza la actualización de los datos de reportes en cache para un evento específico. Útil para regenerar datos después de cambios.",
+        "tags": ["Reportes"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "evento_id",
+            "in": "path",
+            "description": "ID del evento a actualizar",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "report_type": {
+                    "type": "string",
+                    "enum": ["participation", "satisfaction"],
+                    "description": "Tipo de reporte a actualizar. Si no se especifica, se actualizan ambos tipos."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Datos actualizados exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" },
+                    "data": {
+                      "type": "object",
+                      "description": "Resultado de la actualización"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "ID de evento requerido o tipo de reporte inválido" },
+          "401": { "description": "No autenticado" },
+          "403": { "description": "Acceso denegado - Se requiere rol organizador o admin" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
+    },
+    "/api/reports/cache/clean": {
+      "post": {
+        "summary": "Limpiar datos obsoletos del cache",
+        "description": "Elimina datos obsoletos del cache de reportes. Solo accesible para administradores.",
+        "tags": ["Reportes - Admin"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "days_old": {
+                    "type": "integer",
+                    "default": 30,
+                    "description": "Número de días de antigüedad para considerar datos como obsoletos"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Datos obsoletos eliminados exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "deleted_count": { "type": "integer" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "No autenticado" },
+          "403": { "description": "Acceso denegado - Se requiere rol admin" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
     }
   },
   "components": {

@@ -83,14 +83,22 @@ app.get('/', (req, res) => {
         event_evaluations: 'GET /api/evaluaciones/event/:evento_id',
         event_stats: 'GET /api/evaluaciones/stats/:evento_id'
       },
-      reports: {
-        participation_data: 'GET /api/reports/participation',
-        satisfaction_data: 'GET /api/reports/satisfaction',
-        participation_excel: 'GET /api/reports/participation/excel',
-        participation_pdf: 'GET /api/reports/participation/pdf',
-        satisfaction_excel: 'GET /api/reports/satisfaction/excel',
-        satisfaction_pdf: 'GET /api/reports/satisfaction/pdf'
-      }
+        reports: {
+          participation_data: 'GET /api/reports/participation',
+          satisfaction_data: 'GET /api/reports/satisfaction',
+          participation_excel: 'GET /api/reports/participation/excel',
+          participation_pdf: 'GET /api/reports/participation/pdf',
+          satisfaction_excel: 'GET /api/reports/satisfaction/excel',
+          satisfaction_pdf: 'GET /api/reports/satisfaction/pdf',
+          history: 'GET /api/reports/history',
+          stats: 'GET /api/reports/stats',
+          admin_all: 'GET /api/reports/admin/all',
+          admin_stats: 'GET /api/reports/admin/stats',
+          cache_stats: 'GET /api/reports/cache/stats',
+          cache_data: 'GET /api/reports/cache/data',
+          cache_update: 'POST /api/reports/cache/update/:evento_id',
+          cache_clean: 'POST /api/reports/cache/clean'
+        }
     }
   });
 });

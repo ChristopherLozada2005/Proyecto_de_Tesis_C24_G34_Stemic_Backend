@@ -658,5 +658,249 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- =============================================
+-- TABLA: REPORT GENERATIONS
+-- =============================================
+
+-- Crear enum para tipos de reporte
+DO $$ BEGIN
+  CREATE TYPE report_type AS ENUM ('participation', 'satisfaction');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Crear enum para formatos de reporte
+DO $$ BEGIN
+  CREATE TYPE report_format AS ENUM ('excel', 'pdf');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Crear tabla de generaciones de reportes
+CREATE TABLE IF NOT EXISTS report_generations (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL,
+  report_type report_type NOT NULL,
+  report_format report_format NOT NULL,
+  filters JSONB DEFAULT '{}',
+  file_name VARCHAR(255) NOT NULL,
+  file_size BIGINT,
+  generation_time_ms INTEGER,
+  status VARCHAR(20) DEFAULT 'completed' NOT NULL,
+  error_message TEXT NULL,
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  
+  -- Clave foránea
+  CONSTRAINT fk_report_generations_user_id 
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  
+  -- Restricciones
+  CONSTRAINT report_generations_status_valid 
+    CHECK (status IN ('pending', 'processing', 'completed', 'failed')),
+  CONSTRAINT report_generations_file_size_positive 
+    CHECK (file_size IS NULL OR file_size > 0),
+  CONSTRAINT report_generations_generation_time_positive 
+    CHECK (generation_time_ms IS NULL OR generation_time_ms > 0)
+);
+
+-- Índices para optimizar consultas
+CREATE INDEX IF NOT EXISTS idx_report_generations_user_id ON report_generations(user_id);
+CREATE INDEX IF NOT EXISTS idx_report_generations_type ON report_generations(report_type);
+CREATE INDEX IF NOT EXISTS idx_report_generations_format ON report_generations(report_format);
+CREATE INDEX IF NOT EXISTS idx_report_generations_created_at ON report_generations(created_at);
+CREATE INDEX IF NOT EXISTS idx_report_generations_status ON report_generations(status);
+
+-- Trigger updated_at
+DO $$ BEGIN
+  CREATE TRIGGER update_report_generations_updated_at
+    BEFORE UPDATE ON report_generations
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Comentarios
+COMMENT ON TABLE report_generations IS 'Registro de generaciones de reportes del sistema';
+COMMENT ON COLUMN report_generations.id IS 'Identificador único de la generación de reporte';
+COMMENT ON COLUMN report_generations.user_id IS 'ID del usuario que generó el reporte';
+COMMENT ON COLUMN report_generations.report_type IS 'Tipo de reporte (participation, satisfaction)';
+COMMENT ON COLUMN report_generations.report_format IS 'Formato del reporte (excel, pdf)';
+COMMENT ON COLUMN report_generations.filters IS 'Filtros aplicados al generar el reporte (JSON)';
+COMMENT ON COLUMN report_generations.file_name IS 'Nombre del archivo generado';
+COMMENT ON COLUMN report_generations.file_size IS 'Tamaño del archivo en bytes';
+COMMENT ON COLUMN report_generations.generation_time_ms IS 'Tiempo de generación en milisegundos';
+COMMENT ON COLUMN report_generations.status IS 'Estado de la generación (pending, processing, completed, failed)';
+COMMENT ON COLUMN report_generations.error_message IS 'Mensaje de error si la generación falló';
+
+-- =============================================
+-- TABLA: REPORT DATA CACHE
+-- =============================================
+
+-- Crear tabla para cache de datos de reportes
+CREATE TABLE IF NOT EXISTS report_data_cache (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  evento_id UUID NOT NULL,
+  report_type VARCHAR(20) NOT NULL,
+  data JSONB NOT NULL,
+  last_updated TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  is_stale BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  
+  CONSTRAINT fk_report_data_cache_evento_id 
+    FOREIGN KEY (evento_id) REFERENCES eventos(id) ON DELETE CASCADE,
+  
+  CONSTRAINT report_data_cache_type_valid 
+    CHECK (report_type IN ('participation', 'satisfaction')),
+  
+  CONSTRAINT uq_report_data_cache_evento_type 
+    UNIQUE (evento_id, report_type)
+);
+
+-- Indices para optimizar consultas
+CREATE INDEX IF NOT EXISTS idx_report_data_cache_evento_id ON report_data_cache(evento_id);
+CREATE INDEX IF NOT EXISTS idx_report_data_cache_type ON report_data_cache(report_type);
+CREATE INDEX IF NOT EXISTS idx_report_data_cache_last_updated ON report_data_cache(last_updated);
+CREATE INDEX IF NOT EXISTS idx_report_data_cache_stale ON report_data_cache(is_stale);
+
+-- Trigger updated_at
+DO $$ BEGIN
+  CREATE TRIGGER update_report_data_cache_updated_at
+    BEFORE UPDATE ON report_data_cache
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Comentarios
+COMMENT ON TABLE report_data_cache IS 'Cache de datos de reportes para actualizacion en tiempo real';
+COMMENT ON COLUMN report_data_cache.evento_id IS 'ID del evento asociado';
+COMMENT ON COLUMN report_data_cache.report_type IS 'Tipo de reporte (participation, satisfaction)';
+COMMENT ON COLUMN report_data_cache.data IS 'Datos del reporte en formato JSON';
+COMMENT ON COLUMN report_data_cache.last_updated IS 'Ultima vez que se actualizaron los datos';
+COMMENT ON COLUMN report_data_cache.is_stale IS 'Indica si los datos estan desactualizados';
+
+-- =============================================
+-- FUNCIONES DE ACTUALIZACION AUTOMATICA
+-- =============================================
+
+-- Función para actualizar datos de participación cuando termina un evento
+CREATE OR REPLACE FUNCTION update_participation_report_data(evento_id_param UUID)
+RETURNS VOID AS $$
+DECLARE
+  participation_data JSONB;
+BEGIN
+  -- Obtener datos de participación del evento
+  SELECT jsonb_agg(
+    jsonb_build_object(
+      'fecha', e.fecha_hora::date,
+      'evento', e.titulo,
+      'id_asistente', u.id,
+      'nombre_completo', CONCAT(u.nombre, ' ', COALESCE(p.apellido, '')),
+      'telefono', COALESCE(p.telefono, ''),
+      'correo', u.correo,
+      'pertenece_organizacion', COALESCE(p.pertenece_organizacion, false),
+      'modalidad', e.modalidad,
+      'lugar', COALESCE(e.lugar, '')
+    )
+  ) INTO participation_data
+  FROM inscripciones i
+  JOIN eventos e ON i.evento_id = e.id
+  JOIN users u ON i.user_id = u.id
+  LEFT JOIN profiles p ON u.id = p.user_id
+  WHERE e.id = evento_id_param
+    AND i.activa = true
+    AND e.activo = false; -- Solo eventos terminados
+
+  -- Insertar o actualizar en cache
+  INSERT INTO report_data_cache (evento_id, report_type, data, last_updated, is_stale)
+  VALUES (evento_id_param, 'participation', COALESCE(participation_data, '[]'::jsonb), CURRENT_TIMESTAMP, false)
+  ON CONFLICT (evento_id, report_type)
+  DO UPDATE SET 
+    data = EXCLUDED.data,
+    last_updated = EXCLUDED.last_updated,
+    is_stale = false,
+    updated_at = CURRENT_TIMESTAMP;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Función para actualizar datos de satisfacción cuando se completa una evaluación
+CREATE OR REPLACE FUNCTION update_satisfaction_report_data(evento_id_param UUID)
+RETURNS VOID AS $$
+DECLARE
+  satisfaction_data JSONB;
+BEGIN
+  -- Obtener datos de satisfacción del evento
+  SELECT jsonb_agg(
+    jsonb_build_object(
+      'id_encuesta', ev.id,
+      'evento', e.titulo,
+      'nombre_completo', CONCAT(u.nombre, ' ', COALESCE(p.apellido, '')),
+      'correo', u.correo,
+      'calificacion_general', (ev.respuestas->>'pregunta_1')::integer,
+      'cumplio_expectativas', (ev.respuestas->>'pregunta_2')::integer,
+      'recomendarias', (ev.respuestas->>'pregunta_3')::integer,
+      'contenido', (ev.respuestas->>'pregunta_4')::integer,
+      'presentacion', (ev.respuestas->>'pregunta_5')::integer,
+      'lo_que_mas_gusto', ev.respuestas->>'pregunta_13',
+      'aspectos_mejorar', ev.respuestas->>'pregunta_14',
+      'sugerencias', ev.respuestas->>'pregunta_15',
+      'fecha_evaluacion', ev.created_at::date
+    )
+  ) INTO satisfaction_data
+  FROM evaluations ev
+  JOIN eventos e ON ev.evento_id = e.id
+  JOIN users u ON ev.user_id = u.id
+  LEFT JOIN profiles p ON u.id = p.user_id
+  WHERE e.id = evento_id_param
+    AND ev.respuestas IS NOT NULL;
+
+  -- Insertar o actualizar en cache
+  INSERT INTO report_data_cache (evento_id, report_type, data, last_updated, is_stale)
+  VALUES (evento_id_param, 'satisfaction', COALESCE(satisfaction_data, '[]'::jsonb), CURRENT_TIMESTAMP, false)
+  ON CONFLICT (evento_id, report_type)
+  DO UPDATE SET 
+    data = EXCLUDED.data,
+    last_updated = EXCLUDED.last_updated,
+    is_stale = false,
+    updated_at = CURRENT_TIMESTAMP;
+END;
+$$ LANGUAGE plpgsql;
+
+-- =============================================
+-- TRIGGERS PARA ACTUALIZACION AUTOMATICA
+-- =============================================
+
+-- Trigger para actualizar reportes de participación cuando termina un evento
+CREATE OR REPLACE FUNCTION trigger_event_end_participation()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Solo procesar si el evento cambió de activo a inactivo
+  IF OLD.activo = true AND NEW.activo = false THEN
+    PERFORM update_participation_report_data(NEW.id);
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Crear trigger
+DO $$ BEGIN
+  CREATE TRIGGER trigger_event_end_participation
+    AFTER UPDATE ON eventos
+    FOR EACH ROW
+    EXECUTE FUNCTION trigger_event_end_participation();
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Trigger para actualizar reportes de satisfacción cuando se completa una evaluación
+CREATE OR REPLACE FUNCTION trigger_evaluation_satisfaction()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Actualizar datos de satisfacción para el evento
+  PERFORM update_satisfaction_report_data(NEW.evento_id);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Crear trigger
+DO $$ BEGIN
+  CREATE TRIGGER trigger_evaluation_satisfaction
+    AFTER INSERT OR UPDATE ON evaluations
+    FOR EACH ROW
+    EXECUTE FUNCTION trigger_evaluation_satisfaction();
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- =============================================
 -- VISTAS ÚTILES PARA REPORTES
 -- =============================================
