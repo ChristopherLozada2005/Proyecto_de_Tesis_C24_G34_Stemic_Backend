@@ -2857,6 +2857,423 @@
           "500": { "description": "Error interno del servidor" }
         }
       }
+    },
+    "/api/reports/participation": {
+      "get": {
+        "summary": "Obtener datos de participación para reportes",
+        "description": "Obtiene los datos de participación de usuarios en eventos para generar reportes. Solo accesible para organizadores y admins.",
+        "tags": ["Reportes"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "evento_id",
+            "in": "query",
+            "description": "ID del evento específico",
+            "required": false,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "fecha_desde",
+            "in": "query",
+            "description": "Fecha de inicio del rango (YYYY-MM-DD)",
+            "required": false,
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "fecha_hasta",
+            "in": "query",
+            "description": "Fecha de fin del rango (YYYY-MM-DD)",
+            "required": false,
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "modalidad",
+            "in": "query",
+            "description": "Modalidad del evento",
+            "required": false,
+            "schema": { "type": "string", "enum": ["virtual", "presencial", "hibrido"] }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Datos de participación obtenidos exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "evento_id": { "type": "string" },
+                          "evento_titulo": { "type": "string" },
+                          "evento_fecha": { "type": "string", "format": "date-time" },
+                          "evento_modalidad": { "type": "string" },
+                          "evento_lugar": { "type": "string" },
+                          "inscripcion_id": { "type": "string" },
+                          "fecha_inscripcion": { "type": "string", "format": "date-time" },
+                          "usuario_id": { "type": "string" },
+                          "nombre_completo": { "type": "string" },
+                          "correo": { "type": "string" },
+                          "telefono": { "type": "string" },
+                          "pertenece_organizacion": { "type": "string", "enum": ["Sí", "No"] },
+                          "rol_usuario": { "type": "string" }
+                        }
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "total": { "type": "number" },
+                        "filters": { "type": "object" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "No autenticado" },
+          "403": { "description": "Acceso denegado - Se requiere rol organizador o admin" },
+          "400": { "description": "Errores de validación en filtros" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
+    },
+    "/api/reports/satisfaction": {
+      "get": {
+        "summary": "Obtener datos de satisfacción para reportes",
+        "description": "Obtiene los datos de evaluaciones de satisfacción de eventos para generar reportes. Solo accesible para organizadores y admins.",
+        "tags": ["Reportes"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "evento_id",
+            "in": "query",
+            "description": "ID del evento específico",
+            "required": false,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "fecha_desde",
+            "in": "query",
+            "description": "Fecha de inicio del rango (YYYY-MM-DD)",
+            "required": false,
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "fecha_hasta",
+            "in": "query",
+            "description": "Fecha de fin del rango (YYYY-MM-DD)",
+            "required": false,
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "modalidad",
+            "in": "query",
+            "description": "Modalidad del evento",
+            "required": false,
+            "schema": { "type": "string", "enum": ["virtual", "presencial", "hibrido"] }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Datos de satisfacción obtenidos exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "evento_id": { "type": "string" },
+                          "evento_titulo": { "type": "string" },
+                          "evento_fecha": { "type": "string", "format": "date-time" },
+                          "evaluacion_id": { "type": "string" },
+                          "fecha_evaluacion": { "type": "string", "format": "date-time" },
+                          "usuario_id": { "type": "string" },
+                          "nombre_completo": { "type": "string" },
+                          "correo": { "type": "string" },
+                          "respuestas": {
+                            "type": "object",
+                            "properties": {
+                              "pregunta_1": { "type": "number" },
+                              "pregunta_2": { "type": "number" },
+                              "pregunta_3": { "type": "number" },
+                              "pregunta_4": { "type": "number" },
+                              "pregunta_5": { "type": "number" },
+                              "pregunta_6": { "type": "number" },
+                              "pregunta_7": { "type": "number" },
+                              "pregunta_8": { "type": "number" },
+                              "pregunta_9": { "type": "number" },
+                              "pregunta_10": { "type": "number" },
+                              "pregunta_11": { "type": "number" },
+                              "pregunta_12": { "type": "number" },
+                              "pregunta_13": { "type": "string" },
+                              "pregunta_14": { "type": "string" },
+                              "pregunta_15": { "type": "string" }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "total": { "type": "number" },
+                        "filters": { "type": "object" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "No autenticado" },
+          "403": { "description": "Acceso denegado - Se requiere rol organizador o admin" },
+          "400": { "description": "Errores de validación en filtros" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
+    },
+    "/api/reports/participation/excel": {
+      "get": {
+        "summary": "Exportar reporte de participación en Excel",
+        "description": "Genera y descarga un reporte de participación en formato Excel (.xlsx). Solo accesible para organizadores y admins.",
+        "tags": ["Reportes"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "evento_id",
+            "in": "query",
+            "description": "ID del evento específico",
+            "required": false,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "fecha_desde",
+            "in": "query",
+            "description": "Fecha de inicio del rango (YYYY-MM-DD)",
+            "required": false,
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "fecha_hasta",
+            "in": "query",
+            "description": "Fecha de fin del rango (YYYY-MM-DD)",
+            "required": false,
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "modalidad",
+            "in": "query",
+            "description": "Modalidad del evento",
+            "required": false,
+            "schema": { "type": "string", "enum": ["virtual", "presencial", "hibrido"] }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Archivo Excel generado exitosamente",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": { "type": "string", "format": "binary" }
+              }
+            },
+            "headers": {
+              "Content-Disposition": {
+                "description": "Nombre del archivo de descarga",
+                "schema": { "type": "string" }
+              }
+            }
+          },
+          "401": { "description": "No autenticado" },
+          "403": { "description": "Acceso denegado - Se requiere rol organizador o admin" },
+          "400": { "description": "Errores de validación en filtros" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
+    },
+    "/api/reports/participation/pdf": {
+      "get": {
+        "summary": "Exportar reporte de participación en PDF",
+        "description": "Genera y descarga un reporte de participación en formato PDF. Solo accesible para organizadores y admins.",
+        "tags": ["Reportes"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "evento_id",
+            "in": "query",
+            "description": "ID del evento específico",
+            "required": false,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "fecha_desde",
+            "in": "query",
+            "description": "Fecha de inicio del rango (YYYY-MM-DD)",
+            "required": false,
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "fecha_hasta",
+            "in": "query",
+            "description": "Fecha de fin del rango (YYYY-MM-DD)",
+            "required": false,
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "modalidad",
+            "in": "query",
+            "description": "Modalidad del evento",
+            "required": false,
+            "schema": { "type": "string", "enum": ["virtual", "presencial", "hibrido"] }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Archivo PDF generado exitosamente",
+            "content": {
+              "application/pdf": {
+                "schema": { "type": "string", "format": "binary" }
+              }
+            },
+            "headers": {
+              "Content-Disposition": {
+                "description": "Nombre del archivo de descarga",
+                "schema": { "type": "string" }
+              }
+            }
+          },
+          "401": { "description": "No autenticado" },
+          "403": { "description": "Acceso denegado - Se requiere rol organizador o admin" },
+          "400": { "description": "Errores de validación en filtros" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
+    },
+    "/api/reports/satisfaction/excel": {
+      "get": {
+        "summary": "Exportar reporte de satisfacción en Excel",
+        "description": "Genera y descarga un reporte de satisfacción en formato Excel (.xlsx). Solo accesible para organizadores y admins.",
+        "tags": ["Reportes"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "evento_id",
+            "in": "query",
+            "description": "ID del evento específico",
+            "required": false,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "fecha_desde",
+            "in": "query",
+            "description": "Fecha de inicio del rango (YYYY-MM-DD)",
+            "required": false,
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "fecha_hasta",
+            "in": "query",
+            "description": "Fecha de fin del rango (YYYY-MM-DD)",
+            "required": false,
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "modalidad",
+            "in": "query",
+            "description": "Modalidad del evento",
+            "required": false,
+            "schema": { "type": "string", "enum": ["virtual", "presencial", "hibrido"] }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Archivo Excel generado exitosamente",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": { "type": "string", "format": "binary" }
+              }
+            },
+            "headers": {
+              "Content-Disposition": {
+                "description": "Nombre del archivo de descarga",
+                "schema": { "type": "string" }
+              }
+            }
+          },
+          "401": { "description": "No autenticado" },
+          "403": { "description": "Acceso denegado - Se requiere rol organizador o admin" },
+          "400": { "description": "Errores de validación en filtros" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
+    },
+    "/api/reports/satisfaction/pdf": {
+      "get": {
+        "summary": "Exportar reporte de satisfacción en PDF",
+        "description": "Genera y descarga un reporte de satisfacción en formato PDF. Solo accesible para organizadores y admins.",
+        "tags": ["Reportes"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "evento_id",
+            "in": "query",
+            "description": "ID del evento específico",
+            "required": false,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "fecha_desde",
+            "in": "query",
+            "description": "Fecha de inicio del rango (YYYY-MM-DD)",
+            "required": false,
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "fecha_hasta",
+            "in": "query",
+            "description": "Fecha de fin del rango (YYYY-MM-DD)",
+            "required": false,
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "modalidad",
+            "in": "query",
+            "description": "Modalidad del evento",
+            "required": false,
+            "schema": { "type": "string", "enum": ["virtual", "presencial", "hibrido"] }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Archivo PDF generado exitosamente",
+            "content": {
+              "application/pdf": {
+                "schema": { "type": "string", "format": "binary" }
+              }
+            },
+            "headers": {
+              "Content-Disposition": {
+                "description": "Nombre del archivo de descarga",
+                "schema": { "type": "string" }
+              }
+            }
+          },
+          "401": { "description": "No autenticado" },
+          "403": { "description": "Acceso denegado - Se requiere rol organizador o admin" },
+          "400": { "description": "Errores de validación en filtros" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
     }
   },
   "components": {

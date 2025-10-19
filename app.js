@@ -16,6 +16,7 @@ const inscriptionRoutes = require('./src/routes/inscriptions');
 const postulationRoutes = require('./src/routes/postulations');
 const partnerRoutes = require('./src/routes/partners');
 const evaluationRoutes = require('./src/routes/evaluations');
+const reportRoutes = require('./src/routes/reports');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -46,6 +47,7 @@ app.use('/api', inscriptionRoutes);
 app.use('/api/postulations', postulationRoutes);
 app.use('/api/alianzas', partnerRoutes);
 app.use('/api', evaluationRoutes);
+app.use('/api/reports', reportRoutes);
 
 // Documentación Swagger
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
@@ -80,6 +82,14 @@ app.get('/', (req, res) => {
         user_evaluations: 'GET /api/evaluaciones/user',
         event_evaluations: 'GET /api/evaluaciones/event/:evento_id',
         event_stats: 'GET /api/evaluaciones/stats/:evento_id'
+      },
+      reports: {
+        participation_data: 'GET /api/reports/participation',
+        satisfaction_data: 'GET /api/reports/satisfaction',
+        participation_excel: 'GET /api/reports/participation/excel',
+        participation_pdf: 'GET /api/reports/participation/pdf',
+        satisfaction_excel: 'GET /api/reports/satisfaction/excel',
+        satisfaction_pdf: 'GET /api/reports/satisfaction/pdf'
       }
     }
   });
