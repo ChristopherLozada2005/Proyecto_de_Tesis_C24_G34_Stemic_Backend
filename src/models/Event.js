@@ -217,10 +217,8 @@ class Event {
       throw new Error('Evento no encontrado');
     }
 
-    // Validación de permisos solo si se proporciona userId (cuando hay autenticación)
-    if (userId && existingEvent.created_by !== userId) {
-      throw new Error('No tienes permisos para actualizar este evento');
-    }
+    // Los permisos de rol ya se validaron en el middleware requireOrganizadorOrAdmin
+    // Cualquier organizador o admin puede actualizar cualquier evento
 
     const updateFields = [];
     const values = [];
@@ -282,10 +280,8 @@ class Event {
       throw new Error('Evento no encontrado');
     }
 
-    // Validación de permisos solo si se proporciona userId (cuando hay autenticación)
-    if (userId && existingEvent.created_by !== userId) {
-      throw new Error('No tienes permisos para eliminar este evento');
-    }
+    // Los permisos de rol ya se validaron en el middleware requireOrganizadorOrAdmin
+    // Cualquier organizador o admin puede eliminar cualquier evento
 
     const queryText = `
       UPDATE eventos 

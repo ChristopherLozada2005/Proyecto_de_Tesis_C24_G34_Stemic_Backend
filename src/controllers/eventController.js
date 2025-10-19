@@ -199,13 +199,8 @@ class EventController {
         });
       }
 
-      // Verificar permisos: solo el creador puede editar
-      if (!existingEvent.canEdit(req.user.id)) {
-        return res.status(403).json({
-          success: false,
-          message: 'No tienes permisos para actualizar este evento'
-        });
-      }
+      // Verificar permisos: cualquier organizador o admin puede editar
+      // (La verificación de rol ya se hizo en el middleware requireOrganizadorOrAdmin)
 
       // Si hay nueva imagen y el evento tenía una anterior, eliminar la anterior
       if (req.body.imagen_url && existingEvent.imagen_url && existingEvent.imagen_url !== req.body.imagen_url) {
@@ -270,13 +265,8 @@ class EventController {
         });
       }
 
-      // Verificar permisos: solo el creador puede eliminar
-      if (!existingEvent.canEdit(req.user.id)) {
-        return res.status(403).json({
-          success: false,
-          message: 'No tienes permisos para eliminar este evento'
-        });
-      }
+      // Verificar permisos: cualquier organizador o admin puede eliminar
+      // (La verificación de rol ya se hizo en el middleware requireOrganizadorOrAdmin)
 
       // Guardar URL de imagen para eliminar después
       const imageUrl = existingEvent.imagen_url;
