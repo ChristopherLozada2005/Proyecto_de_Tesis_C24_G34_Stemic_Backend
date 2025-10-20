@@ -788,20 +788,19 @@ BEGIN
       'fecha', e.fecha_hora::date,
       'evento', e.titulo,
       'id_asistente', u.id,
-      'nombre_completo', CONCAT(u.nombre, ' ', COALESCE(p.apellido, '')),
-      'telefono', COALESCE(p.telefono, ''),
+      'nombre_completo', u.nombre,
+      'telefono', COALESCE(p.phone_number, ''),
       'correo', u.correo,
-      'pertenece_organizacion', COALESCE(p.pertenece_organizacion, false),
+      'pertenece_organizacion', false,
       'modalidad', e.modalidad,
       'lugar', COALESCE(e.lugar, '')
     )
   ) INTO participation_data
-  FROM inscripciones i
+  FROM inscriptions i
   JOIN eventos e ON i.evento_id = e.id
   JOIN users u ON i.user_id = u.id
   LEFT JOIN profiles p ON u.id = p.user_id
   WHERE e.id = evento_id_param
-    AND i.activa = true
     AND e.activo = false; -- Solo eventos terminados
 
   -- Insertar o actualizar en cache
@@ -827,7 +826,7 @@ BEGIN
     jsonb_build_object(
       'id_encuesta', ev.id,
       'evento', e.titulo,
-      'nombre_completo', CONCAT(u.nombre, ' ', COALESCE(p.apellido, '')),
+      'nombre_completo', u.nombre,
       'correo', u.correo,
       'calificacion_general', (ev.respuestas->>'pregunta_1')::integer,
       'cumplio_expectativas', (ev.respuestas->>'pregunta_2')::integer,
@@ -842,7 +841,7 @@ BEGIN
   ) INTO satisfaction_data
   FROM evaluations ev
   JOIN eventos e ON ev.evento_id = e.id
-  JOIN users u ON ev.user_id = u.id
+  JOIN users u ON ev.usuario_id = u.id
   LEFT JOIN profiles p ON u.id = p.user_id
   WHERE e.id = evento_id_param
     AND ev.respuestas IS NOT NULL;
