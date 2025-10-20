@@ -142,87 +142,144 @@ class ReportController {
   static async generateParticipationPDF(filters = {}) {
     const data = await ReportController.getParticipationData(filters);
     
-    const browser = await puppeteer.launch({ headless: true });
-    const page = await browser.newPage();
+    let browser = null;
+    let page = null;
+    
+    try {
+      // Configuración mínima y estable para Windows
+      browser = await puppeteer.launch({ 
+        headless: 'new',
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+          '--disable-web-security',
+          '--disable-features=VizDisplayCompositor'
+        ],
+        timeout: 60000
+      });
+      
+      page = await browser.newPage();
+      await page.setViewport({ width: 1200, height: 800 });
+      page.setDefaultTimeout(30000);
 
-    // Crear HTML para el PDF
-    const html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <title>Reporte de Participación</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 20px; }
-          .header { text-align: center; margin-bottom: 30px; }
-          .title { color: #2E86AB; font-size: 24px; font-weight: bold; margin-bottom: 10px; }
-          .subtitle { color: #666; font-size: 16px; }
-          .info { margin-bottom: 20px; font-size: 12px; color: #666; }
-          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-          th { background-color: #2E86AB; color: white; padding: 12px 8px; text-align: left; font-weight: bold; }
-          td { padding: 10px 8px; border: 1px solid #ddd; }
-          tr:nth-child(even) { background-color: #f9f9f9; }
-          .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div class="title">REPORTE DE PARTICIPACIÓN</div>
-          <div class="subtitle">Listado detallado de asistentes por eventos</div>
-        </div>
-        
-        <div class="info">
-          <strong>Fecha de generación:</strong> ${new Date().toLocaleString('es-ES')}<br>
-          <strong>Total de registros:</strong> ${data.length}
-        </div>
+    // Crear HTML simple para el PDF
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Reporte de Participación</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; font-size: 12px; }
+    .header { text-align: center; margin-bottom: 30px; }
+    .title { color: #2E86AB; font-size: 24px; font-weight: bold; margin-bottom: 10px; }
+    .subtitle { color: #666; font-size: 16px; }
+    .info { margin-bottom: 20px; font-size: 12px; color: #666; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 10px; }
+    th { background-color: #2E86AB; color: white; padding: 8px 6px; text-align: left; font-weight: bold; }
+    td { padding: 6px; border: 1px solid #ddd; font-size: 9px; }
+    tr:nth-child(even) { background-color: #f9f9f9; }
+    .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="title">REPORTE DE PARTICIPACIÓN</div>
+    <div class="subtitle">Listado detallado de asistentes por eventos</div>
+  </div>
+  
+  <div class="info">
+    <strong>Fecha de generación:</strong> ${new Date().toLocaleString('es-ES')}<br>
+    <strong>Total de registros:</strong> ${data.length}
+  </div>
 
-        <table>
-          <thead>
-            <tr>
-              <th>FECHA</th>
-              <th>EVENTO</th>
-              <th>ID ASISTENTE</th>
-              <th>NOMBRE COMPLETO</th>
-              <th>TELÉFONO</th>
-              <th>CORREO</th>
-              <th>¿PERTENECE A LA ORGANIZACIÓN?</th>
-              <th>MODALIDAD</th>
-              <th>LUGAR</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${data.map(row => `
-              <tr>
-                <td>${new Date(row.evento_fecha).toLocaleDateString('es-ES')}</td>
-                <td>${row.evento_titulo}</td>
-                <td>${row.usuario_id}</td>
-                <td>${row.nombre_completo || 'N/A'}</td>
-                <td>${row.telefono || 'N/A'}</td>
-                <td>${row.correo || 'N/A'}</td>
-                <td>${row.pertenece_organizacion}</td>
-                <td>${row.evento_modalidad}</td>
-                <td>${row.evento_lugar || 'N/A'}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
+  <table>
+    <thead>
+      <tr>
+        <th>FECHA</th>
+        <th>EVENTO</th>
+        <th>ID ASISTENTE</th>
+        <th>NOMBRE COMPLETO</th>
+        <th>TELÉFONO</th>
+        <th>CORREO</th>
+        <th>¿PERTENECE A LA ORGANIZACIÓN?</th>
+        <th>MODALIDAD</th>
+        <th>LUGAR</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${data.map(row => `
+        <tr>
+          <td>${new Date(row.evento_fecha).toLocaleDateString('es-ES')}</td>
+          <td>${(row.evento_titulo || '').replace(/"/g, '&quot;')}</td>
+          <td>${row.usuario_id || 'N/A'}</td>
+          <td>${(row.nombre_completo || 'N/A').replace(/"/g, '&quot;')}</td>
+          <td>${row.telefono || 'N/A'}</td>
+          <td>${(row.correo || 'N/A').replace(/"/g, '&quot;')}</td>
+          <td>${row.pertenece_organizacion || 'No'}</td>
+          <td>${row.evento_modalidad || 'N/A'}</td>
+          <td>${(row.evento_lugar || 'N/A').replace(/"/g, '&quot;')}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>
 
-        <div class="footer">
-          <p>Generado por STEMIC - Sistema de Gestión de Eventos STEM</p>
-        </div>
-      </body>
-      </html>
-    `;
+  <div class="footer">
+    <p>Generado por STEMIC - Sistema de Gestión de Eventos STEM</p>
+  </div>
+</body>
+</html>`;
 
-    await page.setContent(html);
-    const pdf = await page.pdf({
-      format: 'A4',
-      landscape: true,
-      margin: { top: '20px', right: '20px', bottom: '20px', left: '20px' }
-    });
+      await page.setContent(html, { waitUntil: 'domcontentloaded' });
+      
+      // Esperar un poco más para asegurar que todo se renderice
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const pdf = await page.pdf({
+        format: 'A4',
+        landscape: true,
+        margin: { top: '20px', right: '20px', bottom: '20px', left: '20px' },
+        printBackground: true,
+        preferCSSPageSize: false,
+        displayHeaderFooter: false
+      });
+      
+      // Validar que el PDF se generó correctamente
+      if (!pdf || pdf.length === 0) {
+        throw new Error('Error: El PDF generado está vacío');
+      }
+      
+      // Verificar que el PDF tiene el header correcto
+      const pdfHeader = pdf.slice(0, 4);
+      const headerBytes = Array.from(pdfHeader);
+      
+      // Verificar que los primeros 4 bytes corresponden a '%PDF'
+      if (headerBytes[0] !== 37 || headerBytes[1] !== 80 || headerBytes[2] !== 68 || headerBytes[3] !== 70) {
+        throw new Error('Error: El archivo generado no es un PDF válido');
+      }
 
-    await browser.close();
-    return pdf;
+      return pdf;
+      
+    } catch (error) {
+      console.error('Error en generateParticipationPDF:', error);
+      throw error;
+    } finally {
+      if (page) {
+        try {
+          await page.close();
+        } catch (e) {
+          console.warn('Error cerrando página:', e.message);
+        }
+      }
+      if (browser) {
+        try {
+          await browser.close();
+        } catch (e) {
+          console.warn('Error cerrando browser:', e.message);
+        }
+      }
+    }
   }
 
   // =============================================
@@ -376,8 +433,26 @@ class ReportController {
   static async generateSatisfactionPDF(filters = {}) {
     const data = await ReportController.getSatisfactionData(filters);
     
-    const browser = await puppeteer.launch({ headless: true });
-    const page = await browser.newPage();
+    let browser = null;
+    let page = null;
+    
+    try {
+      browser = await puppeteer.launch({ 
+        headless: 'new',
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+          '--disable-web-security',
+          '--disable-features=VizDisplayCompositor'
+        ],
+        timeout: 60000
+      });
+      
+      page = await browser.newPage();
+      await page.setViewport({ width: 1200, height: 800 });
+      page.setDefaultTimeout(30000);
 
     // Crear HTML para el PDF
     const html = `
@@ -475,15 +550,40 @@ class ReportController {
       </html>
     `;
 
-    await page.setContent(html);
-    const pdf = await page.pdf({
-      format: 'A4',
-      landscape: true,
-      margin: { top: '15px', right: '15px', bottom: '15px', left: '15px' }
-    });
+      await page.setContent(html, { waitUntil: 'domcontentloaded' });
+      
+      // Esperar un poco más para asegurar que todo se renderice
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const pdf = await page.pdf({
+        format: 'A4',
+        landscape: true,
+        margin: { top: '15px', right: '15px', bottom: '15px', left: '15px' },
+        printBackground: true,
+        preferCSSPageSize: false
+      });
 
-    await browser.close();
-    return pdf;
+      return pdf;
+      
+    } catch (error) {
+      console.error('Error en generateSatisfactionPDF:', error);
+      throw error;
+    } finally {
+      if (page) {
+        try {
+          await page.close();
+        } catch (e) {
+          console.warn('Error cerrando página:', e.message);
+        }
+      }
+      if (browser) {
+        try {
+          await browser.close();
+        } catch (e) {
+          console.warn('Error cerrando browser:', e.message);
+        }
+      }
+    }
   }
 
   // =============================================
@@ -667,6 +767,10 @@ class ReportController {
 
       const pdf = await ReportController.generateParticipationPDF(filters);
       
+      if (!pdf || pdf.length === 0) {
+        throw new Error('Error: El PDF generado está vacío');
+      }
+      
       // Calcular métricas
       const generationTime = Date.now() - startTime;
       const fileSize = pdf.length;
@@ -676,8 +780,12 @@ class ReportController {
 
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      res.setHeader('Content-Length', pdf.length);
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
       
-      res.send(pdf);
+      res.end(pdf);
     } catch (error) {
       console.error('Error al exportar reporte de participación PDF:', error);
       
@@ -774,6 +882,10 @@ class ReportController {
 
       const pdf = await ReportController.generateSatisfactionPDF(filters);
       
+      if (!pdf || pdf.length === 0) {
+        throw new Error('Error: El PDF generado está vacío');
+      }
+      
       // Calcular métricas
       const generationTime = Date.now() - startTime;
       const fileSize = pdf.length;
@@ -783,8 +895,12 @@ class ReportController {
 
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      res.setHeader('Content-Length', pdf.length);
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
       
-      res.send(pdf);
+      res.end(pdf);
     } catch (error) {
       console.error('Error al exportar reporte de satisfacción PDF:', error);
       
