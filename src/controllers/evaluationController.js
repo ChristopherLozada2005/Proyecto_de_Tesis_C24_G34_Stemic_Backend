@@ -1,5 +1,6 @@
 const Evaluation = require('../models/Evaluation');
 const Event = require('../models/Event');
+const AttendanceVerification = require('../models/AttendanceVerification');
 
 // Obtener las preguntas de evaluación predefinidas
 const getEvaluationQuestions = async (req, res) => {
@@ -230,6 +231,15 @@ const createEvaluation = async (req, res) => {
       });
     }
 
+    // Verificar que el usuario asistió al evento (nueva validación)
+    const attendedEvent = await AttendanceVerification.canUserEvaluate(usuario_id, evento_id);
+    if (!attendedEvent) {
+      return res.status(403).json({
+        success: false,
+        message: 'No puedes evaluar este evento porque no verificaste tu asistencia'
+      });
+    }
+
     // Validar respuestas requeridas (preguntas 1-12)
     const requiredQuestions = ['pregunta_1', 'pregunta_2', 'pregunta_3', 'pregunta_4', 'pregunta_5', 'pregunta_6', 'pregunta_7', 'pregunta_8', 'pregunta_9', 'pregunta_10', 'pregunta_11', 'pregunta_12'];
     
@@ -398,12 +408,16 @@ const canEvaluateEvent = async (req, res) => {
     const existingEvaluation = await Evaluation.findByUserAndEvent(usuario_id, evento_id);
     const alreadyEvaluated = !!existingEvaluation;
 
+    // Verificar si asistió al evento (nueva validación)
+    const attendedEvent = await AttendanceVerification.canUserEvaluate(usuario_id, evento_id);
+
     res.json({
       success: true,
       data: {
-        puede_evaluar: canEvaluate && !alreadyEvaluated,
+        puede_evaluar: canEvaluate && !alreadyEvaluated && attendedEvent,
         evento_finalizado: canEvaluate,
         ya_evaluado: alreadyEvaluated,
+        asistio_evento: attendedEvent,
         evento: {
           id: evento.id,
           titulo: evento.titulo,

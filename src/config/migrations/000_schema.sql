@@ -901,5 +901,133 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- =============================================
+-- TABLA: QR DE ASISTENCIA
+-- =============================================
+
+-- Crear tabla para QR de asistencia de eventos
+CREATE TABLE IF NOT EXISTS attendance_qr (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  evento_id UUID NOT NULL,
+  qr_code TEXT NOT NULL,
+  qr_data JSONB NOT NULL,
+  activo BOOLEAN DEFAULT true,
+  created_by UUID NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  
+  -- Claves foráneas
+  CONSTRAINT fk_attendance_qr_evento_id 
+    FOREIGN KEY (evento_id) REFERENCES eventos(id) ON DELETE CASCADE,
+  CONSTRAINT fk_attendance_qr_created_by 
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE,
+  
+  -- Restricción única: un evento solo puede tener un QR activo
+  CONSTRAINT unique_event_active_qr 
+    UNIQUE (evento_id, activo) DEFERRABLE INITIALLY DEFERRED
+);
+
+-- Índices para optimizar consultas
+CREATE INDEX IF NOT EXISTS idx_attendance_qr_evento_id ON attendance_qr(evento_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_qr_created_by ON attendance_qr(created_by);
+CREATE INDEX IF NOT EXISTS idx_attendance_qr_activo ON attendance_qr(activo);
+CREATE INDEX IF NOT EXISTS idx_attendance_qr_created_at ON attendance_qr(created_at);
+
+-- Trigger updated_at
+DO $$ BEGIN
+  CREATE TRIGGER update_attendance_qr_updated_at
+    BEFORE UPDATE ON attendance_qr
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Comentarios
+COMMENT ON TABLE attendance_qr IS 'QR codes para verificar asistencia a eventos';
+COMMENT ON COLUMN attendance_qr.id IS 'Identificador único del QR';
+COMMENT ON COLUMN attendance_qr.evento_id IS 'ID del evento asociado';
+COMMENT ON COLUMN attendance_qr.qr_code IS 'Código QR generado (string)';
+COMMENT ON COLUMN attendance_qr.qr_data IS 'Datos del QR en formato JSON';
+COMMENT ON COLUMN attendance_qr.activo IS 'Indica si el QR está activo para escaneo';
+COMMENT ON COLUMN attendance_qr.created_by IS 'ID del usuario que generó el QR';
+COMMENT ON COLUMN attendance_qr.created_at IS 'Fecha de creación del QR';
+
+-- =============================================
+-- TABLA: VERIFICACIÓN DE ASISTENCIA
+-- =============================================
+
+-- Crear tabla para registrar verificaciones de asistencia
+CREATE TABLE IF NOT EXISTS attendance_verification (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  evento_id UUID NOT NULL,
+  usuario_id UUID NOT NULL,
+  qr_id UUID NOT NULL,
+  verified_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  
+  -- Claves foráneas
+  CONSTRAINT fk_attendance_verification_evento_id 
+    FOREIGN KEY (evento_id) REFERENCES eventos(id) ON DELETE CASCADE,
+  CONSTRAINT fk_attendance_verification_usuario_id 
+    FOREIGN KEY (usuario_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_attendance_verification_qr_id 
+    FOREIGN KEY (qr_id) REFERENCES attendance_qr(id) ON DELETE CASCADE,
+  
+  -- Restricción única: un usuario solo puede verificar asistencia una vez por evento
+  CONSTRAINT unique_user_event_attendance 
+    UNIQUE (usuario_id, evento_id)
+);
+
+-- Índices para optimizar consultas
+CREATE INDEX IF NOT EXISTS idx_attendance_verification_evento_id ON attendance_verification(evento_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_verification_usuario_id ON attendance_verification(usuario_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_verification_qr_id ON attendance_verification(qr_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_verification_verified_at ON attendance_verification(verified_at);
+
+-- Comentarios
+COMMENT ON TABLE attendance_verification IS 'Registro de verificaciones de asistencia mediante QR';
+COMMENT ON COLUMN attendance_verification.id IS 'Identificador único de la verificación';
+COMMENT ON COLUMN attendance_verification.evento_id IS 'ID del evento';
+COMMENT ON COLUMN attendance_verification.usuario_id IS 'ID del usuario que verificó asistencia';
+COMMENT ON COLUMN attendance_verification.qr_id IS 'ID del QR utilizado para la verificación';
+COMMENT ON COLUMN attendance_verification.verified_at IS 'Fecha y hora de la verificación';
+
+-- =============================================
+-- FUNCIONES AUXILIARES PARA ASISTENCIA
+-- =============================================
+
+-- Función para verificar si un usuario asistió a un evento
+CREATE OR REPLACE FUNCTION user_attended_event(evento_id_param UUID, usuario_id_param UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 
+    FROM attendance_verification av
+    WHERE av.evento_id = evento_id_param 
+      AND av.usuario_id = usuario_id_param
+  );
+END;
+$$ LANGUAGE plpgsql;
+
+-- Función para obtener estadísticas de asistencia de un evento
+CREATE OR REPLACE FUNCTION get_event_attendance_stats(evento_id_param UUID)
+RETURNS TABLE (
+  total_inscritos BIGINT,
+  total_asistentes BIGINT,
+  porcentaje_asistencia NUMERIC
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    COUNT(i.id) as total_inscritos,
+    COUNT(av.id) as total_asistentes,
+    CASE 
+      WHEN COUNT(i.id) > 0 THEN ROUND((COUNT(av.id)::numeric / COUNT(i.id)::numeric) * 100, 2)
+      ELSE 0
+    END as porcentaje_asistencia
+  FROM inscriptions i
+  LEFT JOIN attendance_verification av ON i.user_id = av.usuario_id AND i.event_id = av.evento_id
+  WHERE i.event_id = evento_id_param;
+END;
+$$ LANGUAGE plpgsql;
+
+-- =============================================
 -- VISTAS ÚTILES PARA REPORTES
 -- =============================================

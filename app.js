@@ -17,6 +17,7 @@ const postulationRoutes = require('./src/routes/postulations');
 const partnerRoutes = require('./src/routes/partners');
 const evaluationRoutes = require('./src/routes/evaluations');
 const reportRoutes = require('./src/routes/reports');
+const attendanceRoutes = require('./src/routes/attendance');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -48,6 +49,7 @@ app.use('/api/postulations', postulationRoutes);
 app.use('/api/alianzas', partnerRoutes);
 app.use('/api', evaluationRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/attendance', attendanceRoutes);
 
 // Documentación Swagger
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
@@ -82,6 +84,17 @@ app.get('/', (req, res) => {
         user_evaluations: 'GET /api/evaluaciones/user',
         event_evaluations: 'GET /api/evaluaciones/event/:evento_id',
         event_stats: 'GET /api/evaluaciones/stats/:evento_id'
+      },
+      attendance: {
+        verify: 'POST /api/attendance/verify',
+        can_evaluate: 'GET /api/attendance/can-evaluate/:evento_id',
+        user_verifications: 'GET /api/attendance/user/verifications',
+        generate_qr: 'POST /api/attendance/generate-qr',
+        get_qr: 'GET /api/attendance/event/:evento_id/qr',
+        qr_history: 'GET /api/attendance/event/:evento_id/qr-history',
+        event_verifications: 'GET /api/attendance/event/:evento_id/verifications',
+        event_stats: 'GET /api/attendance/event/:evento_id/stats',
+        deactivate_qr: 'DELETE /api/attendance/event/:evento_id/qr'
       },
         reports: {
           participation_data: 'GET /api/reports/participation',

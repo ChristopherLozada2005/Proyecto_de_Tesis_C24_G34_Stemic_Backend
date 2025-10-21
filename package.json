@@ -21,6 +21,7 @@
     "nodemailer": "^7.0.6",
     "pg": "^8.11.3",
     "puppeteer": "^24.25.0",
+    "qrcode": "^1.5.4",
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {

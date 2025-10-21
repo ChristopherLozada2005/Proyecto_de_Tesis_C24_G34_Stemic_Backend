@@ -3854,6 +3854,415 @@
           "500": { "description": "Error interno del servidor" }
         }
       }
+    },
+    "/api/attendance/verify": {
+      "post": {
+        "summary": "Verificar asistencia mediante QR",
+        "tags": ["Attendance"],
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "qr_data": { "type": "string", "description": "Datos del QR escaneado" }
+                },
+                "required": ["qr_data"]
+              },
+              "example": {
+                "qr_data": "{\"type\":\"attendance_verification\",\"qr_id\":\"54eb141f-c684-46e0-8f05-bbc9e94dbc6f\",\"evento_id\":\"525310bb-b0da-4ce7-82ae-46df5ac91dc9\",\"timestamp\":\"2025-10-21T07:10:51.131Z\",\"evento_titulo\":\"Soluciones para la Educación WA\"}"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Asistencia verificada exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "verification": { "type": "object" },
+                        "evento": { "type": "object" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "QR inválido o datos requeridos" },
+          "401": { "description": "No autenticado" },
+          "409": { "description": "Ya verificaste asistencia a este evento" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
+    },
+    "/api/attendance/can-evaluate/{evento_id}": {
+      "get": {
+        "summary": "Verificar si un usuario puede evaluar un evento",
+        "tags": ["Attendance"],
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "evento_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Estado de evaluación del usuario",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "puede_evaluar": { "type": "boolean" },
+                        "evento_finalizado": { "type": "boolean" },
+                        "ya_evaluado": { "type": "boolean" },
+                        "asistio_evento": { "type": "boolean" },
+                        "evento": { "type": "object" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "No autenticado" },
+          "404": { "description": "Evento no encontrado" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
+    },
+    "/api/attendance/user/verifications": {
+      "get": {
+        "summary": "Obtener verificaciones de asistencia de un usuario",
+        "tags": ["Attendance"],
+        "security": [{"bearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "Lista de verificaciones del usuario",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string" },
+                          "evento_id": { "type": "string" },
+                          "verified_at": { "type": "string", "format": "date-time" },
+                          "evento": { "type": "object" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "No autenticado" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
+    },
+    "/api/attendance/generate-qr": {
+      "post": {
+        "summary": "Generar QR de asistencia para un evento",
+        "tags": ["Attendance"],
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "evento_id": { "type": "string", "format": "uuid", "description": "ID del evento" }
+                },
+                "required": ["evento_id"]
+              },
+              "example": {
+                "evento_id": "123e4567-e89b-12d3-a456-426614174000"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "QR generado exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string" },
+                        "evento_id": { "type": "string" },
+                        "qr_code": { "type": "string" },
+                        "qr_data": { "type": "object" },
+                        "activo": { "type": "boolean" },
+                        "created_by": { "type": "string" },
+                        "created_at": { "type": "string", "format": "date-time" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Datos requeridos" },
+          "401": { "description": "No autenticado" },
+          "403": { "description": "Acceso denegado - Se requiere rol organizador o admin" },
+          "404": { "description": "Evento no encontrado" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
+    },
+    "/api/attendance/event/{evento_id}/qr": {
+      "get": {
+        "summary": "Obtener QR activo de un evento",
+        "tags": ["Attendance"],
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "evento_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "QR activo del evento",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string" },
+                        "evento_id": { "type": "string" },
+                        "qr_code": { "type": "string" },
+                        "qr_data": { "type": "object" },
+                        "activo": { "type": "boolean" },
+                        "created_at": { "type": "string", "format": "date-time" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "No autenticado" },
+          "403": { "description": "Acceso denegado - Se requiere rol organizador o admin" },
+          "404": { "description": "No hay QR activo para este evento" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
+    },
+    "/api/attendance/event/{evento_id}/qr-history": {
+      "get": {
+        "summary": "Obtener historial de QR de un evento",
+        "tags": ["Attendance"],
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "evento_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Historial de QR del evento",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string" },
+                          "evento_id": { "type": "string" },
+                          "qr_code": { "type": "string" },
+                          "activo": { "type": "boolean" },
+                          "created_at": { "type": "string", "format": "date-time" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "No autenticado" },
+          "403": { "description": "Acceso denegado - Se requiere rol organizador o admin" },
+          "404": { "description": "Evento no encontrado" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
+    },
+    "/api/attendance/event/{evento_id}/verifications": {
+      "get": {
+        "summary": "Obtener verificaciones de asistencia de un evento",
+        "tags": ["Attendance"],
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "evento_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de verificaciones del evento",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string" },
+                          "evento_id": { "type": "string" },
+                          "usuario_id": { "type": "string" },
+                          "verified_at": { "type": "string", "format": "date-time" },
+                          "usuario": {
+                            "type": "object",
+                            "properties": {
+                              "nombre": { "type": "string" },
+                              "correo": { "type": "string" }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "No autenticado" },
+          "403": { "description": "Acceso denegado - Se requiere rol organizador o admin" },
+          "404": { "description": "Evento no encontrado" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
+    },
+    "/api/attendance/event/{evento_id}/stats": {
+      "get": {
+        "summary": "Obtener estadísticas de asistencia de un evento",
+        "tags": ["Attendance"],
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "evento_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Estadísticas de asistencia del evento",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "total_inscritos": { "type": "integer" },
+                        "total_asistentes": { "type": "integer" },
+                        "porcentaje_asistencia": { "type": "number" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "No autenticado" },
+          "403": { "description": "Acceso denegado - Se requiere rol organizador o admin" },
+          "404": { "description": "Evento no encontrado" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
+    },
+    "/api/attendance/event/{evento_id}/qr": {
+      "delete": {
+        "summary": "Desactivar QR de un evento",
+        "tags": ["Attendance"],
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "evento_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "QR desactivado exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "No autenticado" },
+          "403": { "description": "Acceso denegado - Se requiere rol organizador o admin" },
+          "404": { "description": "Evento no encontrado o no hay QR activo" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
     }
   },
   "components": {
