@@ -20,6 +20,7 @@ const reportRoutes = require('./src/routes/reports');
 const attendanceRoutes = require('./src/routes/attendance');
 const recommendationRoutes = require('./src/routes/recommendations');
 const userTrackingRoutes = require('./src/routes/userTracking');
+const dashboardRoutes = require('./src/routes/dashboard');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -54,6 +55,7 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api', recommendationRoutes);
 app.use('/api', userTrackingRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Documentación Swagger
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
@@ -109,6 +111,10 @@ app.get('/', (req, res) => {
         user_tracking: 'GET /api/users/:user_id/tracking',
         user_activity: 'GET /api/users/:user_id/activity',
         user_interests: 'GET /api/users/:user_id/interests'
+      },
+      dashboard: {
+        system_metrics: 'GET /api/dashboard/system/metrics',
+        metrics_by_period: 'GET /api/dashboard/system/metrics/period'
       },
         reports: {
           participation_data: 'GET /api/reports/participation',

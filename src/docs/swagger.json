@@ -4639,6 +4639,198 @@
           "500": { "description": "Error interno del servidor" }
         }
       }
+    },
+    "/api/dashboard/system/metrics": {
+      "get": {
+        "summary": "Obtener métricas generales del sistema",
+        "description": "Obtiene todas las métricas clave del sistema para el dashboard general (organizadores y admins)",
+        "tags": ["Dashboard"],
+        "security": [{"bearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "Métricas obtenidas exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "overview": {
+                          "type": "object",
+                          "properties": {
+                            "total_eventos": { "type": "integer" },
+                            "eventos_realizados": { "type": "integer" },
+                            "eventos_programados": { "type": "integer" },
+                            "total_inscripciones": { "type": "integer" },
+                            "total_asistencias": { "type": "integer" },
+                            "total_evaluaciones": { "type": "integer" },
+                            "usuarios_unicos": { "type": "integer" },
+                            "porcentaje_asistencia": { "type": "number" },
+                            "porcentaje_evaluacion": { "type": "number" }
+                          }
+                        },
+                        "modalidad_distribution": {
+                          "type": "object",
+                          "properties": {
+                            "presencial": { "type": "integer" },
+                            "virtual": { "type": "integer" },
+                            "hibrido": { "type": "integer" }
+                          }
+                        },
+                        "satisfaccion_general": {
+                          "type": "object",
+                          "properties": {
+                            "promedio_general": { "type": "number" },
+                            "cumplio_expectativas": { "type": "number" },
+                            "recomendacion": { "type": "number" },
+                            "calidad_contenido": { "type": "number" },
+                            "claridad_presentacion": { "type": "number" },
+                            "utilidad_contenido": { "type": "number" },
+                            "organizacion": { "type": "number" },
+                            "aprendizaje": { "type": "number" },
+                            "desarrollo_habilidades": { "type": "number" },
+                            "aplicacion": { "type": "number" },
+                            "motivacion": { "type": "number" },
+                            "interes_futuro": { "type": "number" }
+                          }
+                        },
+                        "skills_distribution": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "skill": { "type": "string" },
+                              "cantidad_eventos": { "type": "integer" },
+                              "porcentaje": { "type": "number" }
+                            }
+                          }
+                        },
+                        "usuarios": {
+                          "type": "object",
+                          "properties": {
+                            "total": { "type": "integer" },
+                            "admins": { "type": "integer" },
+                            "organizadores": { "type": "integer" },
+                            "usuarios_regulares": { "type": "integer" },
+                            "usuarios_nuevos_mes": { "type": "integer" }
+                          }
+                        },
+                        "postulaciones": {
+                          "type": "object",
+                          "properties": {
+                            "total": { "type": "integer" },
+                            "pendientes": { "type": "integer" },
+                            "aprobadas": { "type": "integer" },
+                            "rechazadas": { "type": "integer" }
+                          }
+                        },
+                        "eventos_populares": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": { "type": "string" },
+                              "titulo": { "type": "string" },
+                              "fecha_hora": { "type": "string" },
+                              "modalidad": { "type": "string" },
+                              "total_inscripciones": { "type": "integer" },
+                              "total_asistencias": { "type": "integer" },
+                              "total_evaluaciones": { "type": "integer" },
+                              "porcentaje_asistencia": { "type": "number" }
+                            }
+                          }
+                        },
+                        "tendencias_mensuales": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "mes": { "type": "string" },
+                              "eventos_realizados": { "type": "integer" },
+                              "inscripciones": { "type": "integer" },
+                              "asistencias": { "type": "integer" },
+                              "evaluaciones": { "type": "integer" }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "No autenticado" },
+          "403": { "description": "Acceso denegado - Se requiere rol organizador o admin" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
+    },
+    "/api/dashboard/system/metrics/period": {
+      "get": {
+        "summary": "Obtener métricas del sistema por período",
+        "description": "Obtiene métricas del sistema filtradas por un período específico (organizadores y admins)",
+        "tags": ["Dashboard"],
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "fecha_desde",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "format": "date" },
+            "description": "Fecha de inicio del período (YYYY-MM-DD)"
+          },
+          {
+            "name": "fecha_hasta",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "format": "date" },
+            "description": "Fecha de fin del período (YYYY-MM-DD)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Métricas del período obtenidas exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "periodo": {
+                          "type": "object",
+                          "properties": {
+                            "fecha_desde": { "type": "string" },
+                            "fecha_hasta": { "type": "string" }
+                          }
+                        },
+                        "eventos": {
+                          "type": "object",
+                          "properties": {
+                            "total": { "type": "integer" },
+                            "realizados": { "type": "integer" },
+                            "programados": { "type": "integer" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Fechas requeridas" },
+          "401": { "description": "No autenticado" },
+          "403": { "description": "Acceso denegado - Se requiere rol organizador o admin" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
     }
   },
   "components": {
