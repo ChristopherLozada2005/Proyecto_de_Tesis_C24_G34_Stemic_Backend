@@ -4421,6 +4421,224 @@
           "500": { "description": "Error interno del servidor" }
         }
       }
+    },
+    "/api/users/{user_id}/tracking": {
+      "get": {
+        "summary": "Obtener seguimiento individual completo de un usuario",
+        "tags": ["User Tracking"],
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "ID del usuario a analizar"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Seguimiento completo del usuario",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "user": {
+                          "type": "object",
+                          "properties": {
+                            "id": { "type": "string" },
+                            "nombre": { "type": "string" },
+                            "correo": { "type": "string" },
+                            "rol": { "type": "string" },
+                            "fecha_registro": { "type": "string", "format": "date-time" }
+                          }
+                        },
+                        "profile": { "type": "object" },
+                        "statistics": {
+                          "type": "object",
+                          "properties": {
+                            "total_inscripciones": { "type": "integer" },
+                            "total_asistencias": { "type": "integer" },
+                            "total_evaluaciones": { "type": "integer" },
+                            "porcentaje_asistencia": { "type": "number" },
+                            "porcentaje_evaluacion": { "type": "number" }
+                          }
+                        },
+                        "participation_history": {
+                          "type": "object",
+                          "properties": {
+                            "inscriptions": { "type": "array" },
+                            "attendance": { "type": "array" },
+                            "evaluations": { "type": "array" }
+                          }
+                        },
+                        "interests_analysis": {
+                          "type": "object",
+                          "properties": {
+                            "profile_interests": { "type": "array" },
+                            "frequent_interests": { "type": "array" }
+                          }
+                        },
+                        "current_postulation": { "type": "object" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "No autenticado" },
+          "403": { "description": "Acceso denegado - Se requiere rol admin" },
+          "404": { "description": "Usuario no encontrado" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
+    },
+    "/api/users/{user_id}/activity": {
+      "get": {
+        "summary": "Obtener resumen de actividad de un usuario",
+        "tags": ["User Tracking"],
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "ID del usuario a analizar"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resumen de actividad del usuario",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "activity_by_month": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "mes": { "type": "string" },
+                              "inscripciones": { "type": "integer" },
+                              "asistencias": { "type": "integer" },
+                              "evaluaciones": { "type": "integer" }
+                            }
+                          }
+                        },
+                        "recent_events": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "titulo": { "type": "string" },
+                              "fecha_hora": { "type": "string" },
+                              "modalidad": { "type": "string" },
+                              "fecha_inscripcion": { "type": "string" },
+                              "fecha_asistencia": { "type": "string" },
+                              "fecha_evaluacion": { "type": "string" }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "No autenticado" },
+          "403": { "description": "Acceso denegado - Se requiere rol admin" },
+          "404": { "description": "Usuario no encontrado" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
+    },
+    "/api/users/{user_id}/interests": {
+      "get": {
+        "summary": "Obtener análisis de intereses de un usuario",
+        "tags": ["User Tracking"],
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "ID del usuario a analizar"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Análisis de intereses del usuario",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "profile_interests": {
+                          "type": "array",
+                          "items": { "type": "string" }
+                        },
+                        "participation_interests": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "interes": { "type": "string" },
+                              "participaciones": { "type": "integer" },
+                              "asistencias": { "type": "integer" },
+                              "evaluaciones": { "type": "integer" }
+                            }
+                          }
+                        },
+                        "engagement_analysis": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "interes": { "type": "string" },
+                              "promedio_satisfaccion": { "type": "number" },
+                              "total_evaluaciones": { "type": "integer" }
+                            }
+                          }
+                        },
+                        "interest_match": {
+                          "type": "object",
+                          "properties": {
+                            "declared_interests": { "type": "integer" },
+                            "active_interests": { "type": "integer" },
+                            "engagement_score": { "type": "number" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "No autenticado" },
+          "403": { "description": "Acceso denegado - Se requiere rol admin" },
+          "404": { "description": "Usuario no encontrado" },
+          "500": { "description": "Error interno del servidor" }
+        }
+      }
     }
   },
   "components": {
