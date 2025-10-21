@@ -18,6 +18,7 @@ const partnerRoutes = require('./src/routes/partners');
 const evaluationRoutes = require('./src/routes/evaluations');
 const reportRoutes = require('./src/routes/reports');
 const attendanceRoutes = require('./src/routes/attendance');
+const recommendationRoutes = require('./src/routes/recommendations');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -50,6 +51,7 @@ app.use('/api/alianzas', partnerRoutes);
 app.use('/api', evaluationRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/attendance', attendanceRoutes);
+app.use('/api', recommendationRoutes);
 
 // Documentación Swagger
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
@@ -95,6 +97,11 @@ app.get('/', (req, res) => {
         event_verifications: 'GET /api/attendance/event/:evento_id/verifications',
         event_stats: 'GET /api/attendance/event/:evento_id/stats',
         deactivate_qr: 'DELETE /api/attendance/event/:evento_id/qr'
+      },
+      recommendations: {
+        user_recommendations: 'GET /api/recommendations/events',
+        by_interest: 'GET /api/recommendations/interest/:interest',
+        stats: 'GET /api/recommendations/stats'
       },
         reports: {
           participation_data: 'GET /api/reports/participation',
