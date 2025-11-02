@@ -20,9 +20,37 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- Tags
+-- Tags
+-- 1. Intenta crear el tipo con la lista completa (para bases de datos nuevas)
 DO $$ BEGIN
-  CREATE TYPE tag_evento AS ENUM ('ia', 'tech', 'networking');
+  CREATE TYPE tag_evento AS ENUM (
+    'ia', 
+    'tech', 
+    'networking',
+    -- Nuevos tags
+    'coding',
+    'competition',
+    'fintech',
+    'hackathon',
+    'healthtech',
+    'innovation',
+    'research',
+    'seminar',
+    'workshop'
+  );
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- 2. Añade los valores al tipo si ya existía (para bases de datos existentes)
+-- Esto es idempotente (seguro de re-ejecutar)
+ALTER TYPE tag_evento ADD VALUE IF NOT EXISTS 'coding';
+ALTER TYPE tag_evento ADD VALUE IF NOT EXISTS 'competition';
+ALTER TYPE tag_evento ADD VALUE IF NOT EXISTS 'fintech';
+ALTER TYPE tag_evento ADD VALUE IF NOT EXISTS 'hackathon';
+ALTER TYPE tag_evento ADD VALUE IF NOT EXISTS 'healthtech';
+ALTER TYPE tag_evento ADD VALUE IF NOT EXISTS 'innovation';
+ALTER TYPE tag_evento ADD VALUE IF NOT EXISTS 'research';
+ALTER TYPE tag_evento ADD VALUE IF NOT EXISTS 'seminar';
+ALTER TYPE tag_evento ADD VALUE IF NOT EXISTS 'workshop';
 
 -- ===============================
 -- FUNCIONES COMUNES
@@ -523,23 +551,6 @@ CREATE TRIGGER update_partners_updated_at
   BEFORE UPDATE ON partners 
   FOR EACH ROW 
   EXECUTE FUNCTION update_partners_updated_at_column();
-
--- =============================================
--- DATOS DE EJEMPLO PARA PARTNERS
--- =============================================
-
--- Insertar algunos partners de ejemplo (solo si no existen)
--- Estos datos son útiles para desarrollo y testing
-INSERT INTO partners (nombre, descripcion, logo_url, sitio_web, activo) VALUES
-('TECSUP', 'Institución educativa líder en tecnología e ingeniería', 'https://via.placeholder.com/150x150?text=TECSUP', 'https://www.tecsup.edu.pe', true),
-('Microsoft', 'Colaboración en tecnologías cloud y desarrollo de software', 'https://via.placeholder.com/150x150?text=Microsoft', 'https://www.microsoft.com', true),
-('Google', 'Partnership en herramientas de desarrollo y cloud computing', 'https://via.placeholder.com/150x150?text=Google', 'https://www.google.com', true),
-('Amazon Web Services', 'Alianza en servicios de cloud computing y IA', 'https://via.placeholder.com/150x150?text=AWS', 'https://aws.amazon.com', true),
-('Oracle', 'Colaboración en bases de datos y tecnologías empresariales', 'https://via.placeholder.com/150x150?text=Oracle', 'https://www.oracle.com', false)
-ON CONFLICT (id) DO NOTHING;
-
--- Nota: Estos son datos de ejemplo para desarrollo.
--- En producción, estos datos pueden ser eliminados o reemplazados por datos reales.
 
 -- =============================================
 -- TABLA: EVALUATIONS (EVALUACIONES)

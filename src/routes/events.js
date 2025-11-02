@@ -23,8 +23,11 @@ router.get('/', validateEventFilters, EventController.getAllEvents);
 // Obtener todos los eventos con filtros (público) - ruta alternativa para compatibilidad frontend
 router.get('/public', validateEventFilters, EventController.getAllEvents);
 
+// Obtener opciones para formularios (skills, tags, modalidades)
+router.get('/options', EventController.getEventOptions);
+
 // Obtener evento específico por ID (público)
-router.get('/:id', EventController.getEventById);
+router.get('/:id', EventController.getEventById); // Esta ruta ahora está después de /options
 
 // Obtener evento específico por ID (público) - ruta alternativa para compatibilidad frontend
 router.get('/public/:id', EventController.getEventById);
@@ -40,9 +43,6 @@ router.get('/upcoming', EventController.getUpcomingEvents);
 
 // Obtener próximos eventos (público) - ruta alternativa para compatibilidad frontend
 router.get('/public/upcoming', EventController.getUpcomingEvents);
-
-// Obtener opciones para formularios (skills, tags, modalidades)
-router.get('/options', EventController.getEventOptions);
 
 // Obtener estadísticas generales (público)
 router.get('/stats', EventController.getEventStats);

@@ -372,9 +372,18 @@ class EventController {
         { value: 'Comunicacion', label: 'Comunicacion' }
       ],
         tags: [
-          { value: 'IA', label: 'IA' },
-          { value: 'TECH', label: 'TECH' },
-          { value: 'NETWORKING', label: 'NETWORKING' }
+          { value: 'CODING', label: 'CODING' },
+          { value: 'COMPETITION', label: 'COMPETITION' },
+          { value: 'FINTECH', label: 'FINTECH' },
+          { value: 'HACKATHON', label: 'HACKATHON' },
+          { value: 'HEALTHTECH', label: 'HEALTHTECH' },
+          { value: 'IA', label: 'IA' }, // Tag existente
+          { value: 'INNOVATION', label: 'INNOVATION' },
+          { value: 'NETWORKING', label: 'NETWORKING' }, // Tag existente
+          { value: 'RESEARCH', label: 'RESEARCH' },
+          { value: 'SEMINAR', label: 'SEMINAR' },
+          { value: 'TECH', label: 'TECH' }, // Tag existente
+          { value: 'WORKSHOP', label: 'WORKSHOP' }
         ],
         modalidades: [
           { value: 'virtual', label: 'Virtual' },
@@ -383,7 +392,7 @@ class EventController {
         ],
         // Para compatibilidad con implementaciones simples
         skills_simple: ['Liderazgo', 'Pensamiento Critico', 'Colaboracion', 'Conocimiento Tecnico', 'Comunicacion'],
-        tags_simple: ['IA', 'TECH', 'NETWORKING'],
+        tags_simple: ['IA', 'TECH', 'NETWORKING','CODING','COMPETITION','FINTECH','HACKATHON','HEALTHTECH','INNOVATION','RESEARCH','SEMINAR','TECH','WORKSHOP'],
         modalidades_simple: ['virtual', 'presencial', 'hibrido']
       };
 

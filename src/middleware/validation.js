@@ -222,11 +222,20 @@ const validateEvent = (req, res, next) => {
       errors.push('Tags debe ser un array o string separado por comas');
     } else {
       // Mapeo de valores mostrados al usuario a valores de BD
-      const tagsMapping = {
-        'IA': 'ia',
-        'TECH': 'tech',
-        'NETWORKING': 'networking'
-      };
+      const tagsMapping = {
+        'IA': 'ia',
+        'TECH': 'tech',
+        'NETWORKING': 'networking',
+        'CODING': 'coding',
+        'COMPETITION': 'competition',
+        'FINTECH': 'fintech',
+        'HACKATHON': 'hackathon',
+        'HEALTHTECH': 'healthtech',
+        'INNOVATION': 'innovation',
+        'RESEARCH': 'research',
+        'SEMINAR': 'seminar',
+        'WORKSHOP': 'workshop'
+      };
       
       const tagsValidos = Object.keys(tagsMapping);
       const tagsInvalidos = tagsArray.filter(tag => !tagsValidos.includes(tag.trim()));
@@ -376,11 +385,20 @@ const validateEventUpdate = (req, res, next) => {
       errors.push('Tags debe ser un array o string separado por comas');
     } else {
       // Mapeo de valores mostrados al usuario a valores de BD
-      const tagsMapping = {
-        'IA': 'ia',
-        'TECH': 'tech',
-        'NETWORKING': 'networking'
-      };
+      const tagsMapping = {
+        'IA': 'ia',
+        'TECH': 'tech',
+        'NETWORKING': 'networking',
+        'CODING': 'coding',
+        'COMPETITION': 'competition',
+        'FINTECH': 'fintech',
+        'HACKATHON': 'hackathon',
+        'HEALTHTECH': 'healthtech',
+        'INNOVATION': 'innovation',
+        'RESEARCH': 'research',
+        'SEMINAR': 'seminar',
+        'WORKSHOP': 'workshop'
+      };
       
       const tagsValidos = Object.keys(tagsMapping);
       const tagsInvalidos = tagsArray.filter(tag => !tagsValidos.includes(tag.trim()));
@@ -433,20 +451,26 @@ const validateEventFilters = (req, res, next) => {
 
   if (tags && typeof tags === 'string') {
     // Mapeo flexible: acepta tanto mayúsculas como minúsculas
-    const tagsMapping = {
-      'IA': 'ia',
-      'ia': 'ia',
-      'TECH': 'tech', 
-      'tech': 'tech',
-      'NETWORKING': 'networking',
-      'networking': 'networking'
-    };
+    const tagsMapping = {
+      'IA': 'ia', 'ia': 'ia',
+      'TECH': 'tech', 'tech': 'tech',
+      'NETWORKING': 'networking', 'networking': 'networking',
+      'CODING': 'coding', 'coding': 'coding',
+      'COMPETITION': 'competition', 'competition': 'competition',
+      'FINTECH': 'fintech', 'fintech': 'fintech',
+      'HACKATHON': 'hackathon', 'hackathon': 'hackathon',
+      'HEALTHTECH': 'healthtech', 'healthtech': 'healthtech',
+      'INNOVATION': 'innovation', 'innovation': 'innovation',
+      'RESEARCH': 'research', 'research': 'research',
+      'SEMINAR': 'seminar', 'seminar': 'seminar',
+      'WORKSHOP': 'workshop', 'workshop': 'workshop'
+    };
     
     const tagsArray = tags.split(',');
     const tagsInvalidos = tagsArray.filter(tag => !tagsMapping[tag.trim()]);
     
     if (tagsInvalidos.length > 0) {
-      errors.push(`Tags de filtro inválidos: ${tagsInvalidos.join(', ')}. Tags válidos: ia, tech, networking (o IA, TECH, NETWORKING)`);
+      errors.push(`Tags de filtro inválidos: ${tagsInvalidos.join(', ')}. Por favor, usa los tags disponibles en la lista.`);
     } else {
       // Convertir a valores de BD (minúsculas) en req.query para el controlador
       req.query.tags = tagsArray.map(tag => tagsMapping[tag.trim()]).join(',');
@@ -563,7 +587,11 @@ const validateProfile = (req, res, next) => {
     if (!Array.isArray(interestsArray)) {
       errors.push('Los intereses deben ser un array');
     } else {
-      const validInterests = ['ia', 'tech', 'networking'];
+      const validInterests = [
+                'ia', 'tech', 'networking', 'coding', 'competition',
+                'fintech', 'hackathon', 'healthtech', 'innovation',
+                'research', 'seminar', 'workshop'
+              ];
       const invalidInterests = interestsArray.filter(interest => !validInterests.includes(interest.trim().toLowerCase()));
       
       if (invalidInterests.length > 0) {
