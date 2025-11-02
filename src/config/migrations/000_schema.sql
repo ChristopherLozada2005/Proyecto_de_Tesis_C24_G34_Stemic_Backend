@@ -797,7 +797,7 @@ BEGIN
     )
   ) INTO participation_data
   FROM inscriptions i
-  JOIN eventos e ON i.evento_id = e.id
+  JOIN eventos e ON i.event_id = e.id
   JOIN users u ON i.user_id = u.id
   LEFT JOIN profiles p ON u.id = p.user_id
   WHERE e.id = evento_id_param
