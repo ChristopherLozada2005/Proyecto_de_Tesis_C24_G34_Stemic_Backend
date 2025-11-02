@@ -168,10 +168,21 @@ class PostulationController {
       const { comentarios } = req.body;
 
       const postulation = await Postulation.updateStatus(id, adminId, 'aprobada', comentarios);
-      
+
       // Obtener información actualizada del usuario
       const userInfo = await Postulation.getUserRoleAfterApproval(id);
-      
+
+      // Lógica explícita para actualizar el rol del usuario
+      if (userInfo) {
+        const updatedRole = await Postulation.updateUserRole(userInfo.id, 'organizador');
+        if (!updatedRole) {
+          return res.status(500).json({
+            success: false,
+            message: 'No se pudo actualizar el rol del usuario a organizador.'
+          });
+        }
+      }
+
       res.status(200).json({
         success: true,
         message: 'Postulación aprobada exitosamente. El usuario ahora tiene rol de organizador.',
@@ -183,20 +194,20 @@ class PostulationController {
             id: userInfo.id,
             nombre: userInfo.nombre,
             correo: userInfo.correo,
-            rol: userInfo.rol
+            rol: 'organizador'
           } : null
         }
       });
     } catch (error) {
       console.error('Error en approvePostulation:', error);
-      
+
       if (error.message === 'Postulación no encontrada') {
         return res.status(404).json({
           success: false,
           message: error.message
         });
       }
-      
+
       if (error.message === 'Estado inválido') {
         return res.status(400).json({
           success: false,
