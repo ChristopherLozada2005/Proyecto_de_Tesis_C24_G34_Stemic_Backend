@@ -298,6 +298,241 @@ class DashboardController {
       });
     }
   }
+
+  // Obtener métricas detalladas de un evento específico
+  static async getEventMetrics(req, res) {
+    const { eventId } = req.params;
+
+    try {
+      const eventResult = await query(
+        `SELECT e.id,
+                e.titulo,
+                e.fecha_hora,
+                e.modalidad,
+                e.lugar,
+                e.created_by,
+                e.imagen_url,
+                u.nombre AS organizer_nombre
+         FROM eventos e
+         LEFT JOIN users u ON u.id = e.created_by
+         WHERE e.id = $1 AND e.activo = true`,
+        [eventId]
+      );
+
+      if (eventResult.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Evento no encontrado'
+        });
+      }
+
+      const event = eventResult.rows[0];
+
+      if (req.user?.rol === 'organizador' && event.created_by !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          message: 'No tienes permisos para ver este evento'
+        });
+      }
+
+      const [overviewResult, satisfactionResult, timelineResult, recentRegistrationsResult, recentAttendanceResult, recentEvaluationsResult, feedbackResult] = await Promise.all([
+        query(
+          `SELECT 
+              COUNT(DISTINCT i.id) AS total_inscripciones,
+              COUNT(DISTINCT av.id) AS total_asistencias,
+              COUNT(DISTINCT ev.id) AS total_evaluaciones,
+              COUNT(DISTINCT i.user_id) AS usuarios_unicos_inscritos,
+              COUNT(DISTINCT av.usuario_id) AS usuarios_unicos_asistentes,
+              COUNT(DISTINCT ev.usuario_id) AS usuarios_unicos_evaluadores
+           FROM eventos e
+           LEFT JOIN inscriptions i ON e.id = i.event_id
+           LEFT JOIN attendance_verification av ON e.id = av.evento_id
+           LEFT JOIN evaluations ev ON e.id = ev.evento_id
+           WHERE e.id = $1`,
+          [eventId]
+        ),
+        query(
+          `SELECT 
+              COUNT(*) AS total_respuestas,
+              ROUND(AVG((respuestas->>'pregunta_1')::numeric), 2) AS promedio_general,
+              ROUND(AVG((respuestas->>'pregunta_2')::numeric), 2) AS cumplio_expectativas,
+              ROUND(AVG((respuestas->>'pregunta_3')::numeric), 2) AS recomendacion,
+              ROUND(AVG((respuestas->>'pregunta_4')::numeric), 2) AS calidad_contenido,
+              ROUND(AVG((respuestas->>'pregunta_5')::numeric), 2) AS claridad_presentacion,
+              ROUND(AVG((respuestas->>'pregunta_6')::numeric), 2) AS utilidad_contenido,
+              ROUND(AVG((respuestas->>'pregunta_7')::numeric), 2) AS organizacion,
+              ROUND(AVG((respuestas->>'pregunta_8')::numeric), 2) AS aprendizaje,
+              ROUND(AVG((respuestas->>'pregunta_9')::numeric), 2) AS desarrollo_habilidades,
+              ROUND(AVG((respuestas->>'pregunta_10')::numeric), 2) AS aplicacion,
+              ROUND(AVG((respuestas->>'pregunta_11')::numeric), 2) AS motivacion,
+              ROUND(AVG((respuestas->>'pregunta_12')::numeric), 2) AS interes_futuro
+           FROM evaluations
+           WHERE evento_id = $1`,
+          [eventId]
+        ),
+        query(
+          `SELECT fecha,
+                  SUM(total_inscripciones) AS total_inscripciones,
+                  SUM(total_asistencias) AS total_asistencias
+           FROM (
+             SELECT TO_CHAR(date_trunc('day', i.created_at), 'YYYY-MM-DD') AS fecha,
+                    COUNT(*) AS total_inscripciones,
+                    0 AS total_asistencias
+             FROM inscriptions i
+             WHERE i.event_id = $1
+             GROUP BY fecha
+             UNION ALL
+             SELECT TO_CHAR(date_trunc('day', av.verified_at), 'YYYY-MM-DD') AS fecha,
+                    0 AS total_inscripciones,
+                    COUNT(*) AS total_asistencias
+             FROM attendance_verification av
+             WHERE av.evento_id = $1
+             GROUP BY fecha
+           ) datos
+           GROUP BY fecha
+           ORDER BY fecha ASC`,
+          [eventId]
+        ),
+        query(
+          `SELECT i.id, i.created_at, u.nombre, u.correo
+           FROM inscriptions i
+           JOIN users u ON i.user_id = u.id
+           WHERE i.event_id = $1
+           ORDER BY i.created_at DESC
+           LIMIT 8`,
+          [eventId]
+        ),
+        query(
+          `SELECT av.id, av.verified_at, u.nombre, u.correo
+           FROM attendance_verification av
+           JOIN users u ON av.usuario_id = u.id
+           WHERE av.evento_id = $1
+           ORDER BY av.verified_at DESC
+           LIMIT 8`,
+          [eventId]
+        ),
+        query(
+          `SELECT ev.id, ev.created_at, u.nombre, u.correo,
+                  (ev.respuestas->>'pregunta_1')::numeric AS calificacion_general
+           FROM evaluations ev
+           JOIN users u ON ev.usuario_id = u.id
+           WHERE ev.evento_id = $1
+           ORDER BY ev.created_at DESC
+           LIMIT 8`,
+          [eventId]
+        ),
+        query(
+          `SELECT ev.id, ev.created_at, u.nombre,
+                  ev.respuestas->>'pregunta_13' AS lo_que_mas_gusto,
+                  ev.respuestas->>'pregunta_14' AS aspectos_mejorar,
+                  ev.respuestas->>'pregunta_15' AS sugerencias
+           FROM evaluations ev
+           JOIN users u ON ev.usuario_id = u.id
+           WHERE ev.evento_id = $1
+             AND ((ev.respuestas->>'pregunta_13') IS NOT NULL OR (ev.respuestas->>'pregunta_14') IS NOT NULL OR (ev.respuestas->>'pregunta_15') IS NOT NULL)
+           ORDER BY ev.created_at DESC
+           LIMIT 10`,
+          [eventId]
+        )
+      ]);
+
+      const overviewRow = overviewResult.rows[0] || {};
+      const satisfactionRow = satisfactionResult.rows[0] || {};
+
+      const totalInscripciones = parseInt(overviewRow.total_inscripciones || 0, 10);
+      const totalAsistencias = parseInt(overviewRow.total_asistencias || 0, 10);
+      const totalEvaluaciones = parseInt(overviewRow.total_evaluaciones || 0, 10);
+
+      const porcentajeAsistencia = totalInscripciones > 0
+        ? Math.round((totalAsistencias / totalInscripciones) * 10000) / 100
+        : 0;
+
+      const porcentajeEvaluacion = totalAsistencias > 0
+        ? Math.round((totalEvaluaciones / Math.max(totalAsistencias, 1)) * 10000) / 100
+        : 0;
+
+      res.json({
+        success: true,
+        data: {
+          event: {
+            id: event.id,
+            titulo: event.titulo,
+            fecha_hora: event.fecha_hora,
+            modalidad: event.modalidad,
+            lugar: event.lugar,
+            imagen_url: event.imagen_url,
+            organizer_nombre: event.organizer_nombre
+          },
+          overview: {
+            total_inscripciones: totalInscripciones,
+            total_asistencias: totalAsistencias,
+            total_evaluaciones: totalEvaluaciones,
+            usuarios_unicos_inscritos: parseInt(overviewRow.usuarios_unicos_inscritos || 0, 10),
+            usuarios_unicos_asistentes: parseInt(overviewRow.usuarios_unicos_asistentes || 0, 10),
+            usuarios_unicos_evaluadores: parseInt(overviewRow.usuarios_unicos_evaluadores || 0, 10),
+            porcentaje_asistencia: porcentajeAsistencia,
+            porcentaje_evaluacion: porcentajeEvaluacion
+          },
+          satisfaction: {
+            total_respuestas: parseInt(satisfactionRow.total_respuestas || 0, 10),
+            promedio_general: parseFloat(satisfactionRow.promedio_general || 0),
+            cumplio_expectativas: parseFloat(satisfactionRow.cumplio_expectativas || 0),
+            recomendacion: parseFloat(satisfactionRow.recomendacion || 0),
+            calidad_contenido: parseFloat(satisfactionRow.calidad_contenido || 0),
+            claridad_presentacion: parseFloat(satisfactionRow.claridad_presentacion || 0),
+            utilidad_contenido: parseFloat(satisfactionRow.utilidad_contenido || 0),
+            organizacion: parseFloat(satisfactionRow.organizacion || 0),
+            aprendizaje: parseFloat(satisfactionRow.aprendizaje || 0),
+            desarrollo_habilidades: parseFloat(satisfactionRow.desarrollo_habilidades || 0),
+            aplicacion: parseFloat(satisfactionRow.aplicacion || 0),
+            motivacion: parseFloat(satisfactionRow.motivacion || 0),
+            interes_futuro: parseFloat(satisfactionRow.interes_futuro || 0)
+          },
+          timeline: timelineResult.rows.map(row => ({
+            fecha: row.fecha,
+            inscripciones: parseInt(row.total_inscripciones || 0, 10),
+            asistencias: parseInt(row.total_asistencias || 0, 10)
+          })),
+          recent_activity: {
+            inscripciones: recentRegistrationsResult.rows.map(row => ({
+              id: row.id,
+              nombre: row.nombre,
+              correo: row.correo,
+              fecha: row.created_at
+            })),
+            asistencias: recentAttendanceResult.rows.map(row => ({
+              id: row.id,
+              nombre: row.nombre,
+              correo: row.correo,
+              fecha: row.verified_at
+            })),
+            evaluaciones: recentEvaluationsResult.rows.map(row => ({
+              id: row.id,
+              nombre: row.nombre,
+              correo: row.correo,
+              calificacion_general: row.calificacion_general ? Number(row.calificacion_general) : null,
+              fecha: row.created_at
+            }))
+          },
+          feedback: feedbackResult.rows.map(row => ({
+            id: row.id,
+            nombre: row.nombre,
+            fecha: row.created_at,
+            lo_que_mas_gusto: row.lo_que_mas_gusto,
+            aspectos_mejorar: row.aspectos_mejorar,
+            sugerencias: row.sugerencias
+          }))
+        }
+      });
+
+    } catch (error) {
+      console.error('Error al obtener métricas del evento:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor'
+      });
+    }
+  }
 }
 
 module.exports = DashboardController;
