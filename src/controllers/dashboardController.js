@@ -328,13 +328,6 @@ class DashboardController {
 
       const event = eventResult.rows[0];
 
-      if (req.user?.rol === 'organizador' && event.created_by !== req.user.id) {
-        return res.status(403).json({
-          success: false,
-          message: 'No tienes permisos para ver este evento'
-        });
-      }
-
       const [overviewResult, satisfactionResult, timelineResult, recentRegistrationsResult, recentAttendanceResult, recentEvaluationsResult, feedbackResult] = await Promise.all([
         query(
           `SELECT 
