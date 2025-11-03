@@ -114,7 +114,8 @@ app.get('/', (req, res) => {
       },
       dashboard: {
         system_metrics: 'GET /api/dashboard/system/metrics',
-        metrics_by_period: 'GET /api/dashboard/system/metrics/period'
+        metrics_by_period: 'GET /api/dashboard/system/metrics/period',
+        event_metrics: 'GET /api/dashboard/events/:eventId/metrics'
       },
         reports: {
           participation_data: 'GET /api/reports/participation',
