@@ -328,7 +328,7 @@ class DashboardController {
 
       const event = eventResult.rows[0];
 
-      const [overviewResult, satisfactionResult, timelineResult, recentRegistrationsResult, recentAttendanceResult, recentEvaluationsResult, feedbackResult] = await Promise.all([
+      const [overviewResult, satisfactionResult, timelineResult, recentRegistrationsResult, recentAttendanceResult, recentEvaluationsResult, feedbackResult, eventPostulationStatsResult, recentEventPostulationsResult] = await Promise.all([
         query(
           `SELECT 
               COUNT(DISTINCT i.id) AS total_inscripciones,
@@ -426,6 +426,27 @@ class DashboardController {
            ORDER BY ev.created_at DESC
            LIMIT 10`,
           [eventId]
+        ),
+        query(
+          `SELECT 
+              COUNT(*) AS total,
+              COUNT(*) FILTER (WHERE estado = 'pendiente') AS pendientes,
+              COUNT(*) FILTER (WHERE estado = 'en_revision') AS en_revision,
+              COUNT(*) FILTER (WHERE estado = 'preseleccionado') AS preseleccionados,
+              COUNT(*) FILTER (WHERE estado = 'aprobado') AS aprobados,
+              COUNT(*) FILTER (WHERE estado = 'rechazado') AS rechazados
+           FROM event_postulations
+           WHERE event_id = $1`,
+          [eventId]
+        ),
+        query(
+          `SELECT ep.id, ep.estado, ep.fecha_postulacion, u.nombre, u.correo
+           FROM event_postulations ep
+           JOIN users u ON ep.user_id = u.id
+           WHERE ep.event_id = $1
+           ORDER BY ep.fecha_postulacion DESC
+           LIMIT 10`,
+          [eventId]
         )
       ]);
 
@@ -514,7 +535,24 @@ class DashboardController {
             lo_que_mas_gusto: row.lo_que_mas_gusto,
             aspectos_mejorar: row.aspectos_mejorar,
             sugerencias: row.sugerencias
-          }))
+          })),
+          postulaciones: {
+            resumen: {
+              total: parseInt(eventPostulationStatsResult.rows?.[0]?.total || 0, 10),
+              pendientes: parseInt(eventPostulationStatsResult.rows?.[0]?.pendientes || 0, 10),
+              en_revision: parseInt(eventPostulationStatsResult.rows?.[0]?.en_revision || 0, 10),
+              preseleccionados: parseInt(eventPostulationStatsResult.rows?.[0]?.preseleccionados || 0, 10),
+              aprobados: parseInt(eventPostulationStatsResult.rows?.[0]?.aprobados || 0, 10),
+              rechazados: parseInt(eventPostulationStatsResult.rows?.[0]?.rechazados || 0, 10)
+            },
+            recientes: recentEventPostulationsResult.rows.map(row => ({
+              id: row.id,
+              estado: row.estado,
+              fecha_postulacion: row.fecha_postulacion,
+              nombre: row.nombre,
+              correo: row.correo
+            }))
+          }
         }
       });
 

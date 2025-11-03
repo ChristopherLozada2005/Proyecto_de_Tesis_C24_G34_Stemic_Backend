@@ -26,6 +26,9 @@ class Event {
     this.fecha_hora = eventData.fecha_hora;
     this.imagen_url = eventData.imagen_url;
     this.requiere_postulacion = eventData.requiere_postulacion || false;
+    this.allow_custom_form = eventData.allow_custom_form || false;
+    this.postulation_schema = eventData.postulation_schema || null;
+    this.postulation_schema_version = eventData.postulation_schema_version || 1;
     this.activo = eventData.activo !== undefined ? eventData.activo : true;
     this.created_by = eventData.created_by;
     this.created_at = eventData.created_at;
@@ -49,6 +52,9 @@ class Event {
       fecha_hora,
       imagen_url,
       requiere_postulacion = false,
+      allow_custom_form = false,
+      postulation_schema = null,
+      postulation_schema_version = 1,
       created_by
     } = eventData;
 
@@ -61,8 +67,8 @@ class Event {
       INSERT INTO eventos (
         titulo, descripcion, fecha_aplicacion_prioritaria, fecha_aplicacion_general,
         duracion, correo_contacto, informacion_adicional, skills, tags,
-        modalidad, lugar, fecha_hora, imagen_url, requiere_postulacion, created_by
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::skill_evento[], $9::tag_evento[], $10, $11, $12, $13, $14, $15)
+        modalidad, lugar, fecha_hora, imagen_url, requiere_postulacion, allow_custom_form, postulation_schema, postulation_schema_version, created_by
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::skill_evento[], $9::tag_evento[], $10, $11, $12, $13, $14, $15, $16, $17)
       RETURNING *
     `;
 
@@ -85,6 +91,9 @@ class Event {
       fecha_hora,
       imagen_url,
       requiere_postulacion,
+      allow_custom_form,
+      postulation_schema,
+      postulation_schema_version,
       created_by
     ];
 
@@ -228,7 +237,8 @@ class Event {
     const allowedFields = [
       'titulo', 'descripcion', 'fecha_aplicacion_prioritaria', 'fecha_aplicacion_general',
       'duracion', 'correo_contacto', 'informacion_adicional', 'skills', 'tags',
-      'modalidad', 'lugar', 'fecha_hora', 'imagen_url', 'requiere_postulacion'
+      'modalidad', 'lugar', 'fecha_hora', 'imagen_url', 'requiere_postulacion',
+      'allow_custom_form', 'postulation_schema', 'postulation_schema_version'
     ];
 
     for (const field of allowedFields) {
@@ -427,6 +437,9 @@ class Event {
       fecha_hora: this.fecha_hora,
       imagen_url: this.imagen_url,
       requiere_postulacion: this.requiere_postulacion,
+      allow_custom_form: this.allow_custom_form,
+      postulation_schema: this.postulation_schema,
+      postulation_schema_version: this.postulation_schema_version,
       activo: this.activo,
       created_by: this.created_by,
       created_at: this.created_at,
@@ -452,8 +465,43 @@ class Event {
       fecha_hora: this.fecha_hora,
       imagen_url: this.imagen_url,
       requiere_postulacion: this.requiere_postulacion,
+      allow_custom_form: this.allow_custom_form,
       created_at: this.created_at
     };
+  }
+
+  static async getPostulationForm(eventId) {
+    const queryText = `
+      SELECT id, allow_custom_form, postulation_schema, postulation_schema_version
+      FROM eventos
+      WHERE id = $1 AND activo = true
+    `;
+
+    const result = await query(queryText, [eventId]);
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return result.rows[0];
+  }
+
+  static async savePostulationForm(eventId, { schema, allowCustomForm = true }) {
+    const queryText = `
+      UPDATE eventos
+      SET allow_custom_form = $1,
+          postulation_schema = $2,
+          postulation_schema_version = COALESCE(postulation_schema_version, 1) + 1,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $3
+      RETURNING id, allow_custom_form, postulation_schema, postulation_schema_version
+    `;
+
+    const result = await query(queryText, [allowCustomForm, schema, eventId]);
+    if (result.rows.length === 0) {
+      throw new Error('Evento no encontrado');
+    }
+
+    return result.rows[0];
   }
 }
 

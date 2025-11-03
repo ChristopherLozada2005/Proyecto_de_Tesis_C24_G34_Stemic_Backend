@@ -12,6 +12,7 @@ const {
   handleEventImageUpload, 
   cleanupImageOnError 
 } = require('../middleware/cloudinaryUpload');
+const EventPostulationController = require('../controllers/eventPostulationController');
 
 // ===============================
 // RUTAS PÚBLICAS (sin autenticación)
@@ -26,11 +27,41 @@ router.get('/public', validateEventFilters, EventController.getAllEvents);
 // Obtener opciones para formularios (skills, tags, modalidades)
 router.get('/options', EventController.getEventOptions);
 
-// Obtener evento específico por ID (público)
-router.get('/:id', EventController.getEventById); // Esta ruta ahora está después de /options
+// Obtener formulario de postulación personalizado
+router.get('/:eventId/postulation-form', EventPostulationController.getForm);
 
+// ===============================
+// RUTAS QUE REQUIEREN MÁS ESPECÍFICAS (definir antes de :id)
+// ===============================
+
+router.get('/:eventId/postulations/me', authenticateToken, EventPostulationController.getMyPostulation);
+
+router.post('/:eventId/postulations', authenticateToken, EventPostulationController.submit);
+
+router.get('/:eventId/postulations', authenticateToken, requireOrganizadorOrAdmin, EventPostulationController.list);
+
+router.put(
+  '/:eventId/postulations/:postulationId/status',
+  authenticateToken,
+  requireOrganizadorOrAdmin,
+  EventPostulationController.updateStatus
+);
+
+router.put(
+  '/:eventId/postulation-form',
+  authenticateToken,
+  requireOrganizadorOrAdmin,
+  EventPostulationController.saveForm
+);
+
+// Rutas dependientes del ID básico deben ir después de las rutas específicas
+
+// Obtener evento específico por ID (público)
 // Obtener evento específico por ID (público) - ruta alternativa para compatibilidad frontend
 router.get('/public/:id', EventController.getEventById);
+
+// Obtener evento específico por ID (público)
+router.get('/:id', EventController.getEventById); // Esta ruta debe definirse después de rutas más específicas
 
 // Buscar eventos (público)
 router.get('/search', EventController.searchEvents);

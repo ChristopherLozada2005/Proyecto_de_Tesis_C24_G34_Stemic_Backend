@@ -33,6 +33,7 @@ CLOUDINARY_API_SECRET=tu_api_secret
 Ejecuta el esquema consolidado:
 ```bash
 psql -U postgres -d stemic_db -f src/config/migrations/000_schema.sql
+psql -U postgres -d stemic_db -f src/config/migrations/010_event_forms.sql
 ```
 
 > El archivo crea:
