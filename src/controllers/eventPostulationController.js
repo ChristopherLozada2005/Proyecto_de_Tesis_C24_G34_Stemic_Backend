@@ -172,11 +172,12 @@ class EventPostulationController {
       }
 
       const isAdmin = req.user.rol === 'admin';
+      const isOrganizer = req.user.rol === 'organizador';
       const isOwner = event.created_by === req.user.id;
-      if (!isAdmin && !isOwner) {
+      if (!isAdmin && !isOrganizer && !isOwner) {
         return res.status(403).json({
           success: false,
-          message: 'Solo el creador del evento o un administrador puede ver las postulaciones'
+          message: 'Solo un administrador, organizador o el creador del evento puede ver las postulaciones'
         });
       }
 
@@ -212,11 +213,12 @@ class EventPostulationController {
       }
 
       const isAdmin = req.user.rol === 'admin';
+      const isOrganizer = req.user.rol === 'organizador';
       const isOwner = event.created_by === req.user.id;
-      if (!isAdmin && !isOwner) {
+      if (!isAdmin && !isOrganizer && !isOwner) {
         return res.status(403).json({
           success: false,
-          message: 'Solo el creador del evento o un administrador puede actualizar postulaciones'
+          message: 'Solo un administrador, organizador o el creador del evento puede actualizar postulaciones'
         });
       }
 
