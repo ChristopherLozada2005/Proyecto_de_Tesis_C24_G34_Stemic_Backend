@@ -11,4 +11,7 @@ router.get('/system/metrics', authenticateToken, requireOrganizadorOrAdmin, Dash
 // Obtener métricas por período específico (organizadores y admins)
 router.get('/system/metrics/period', authenticateToken, requireOrganizadorOrAdmin, DashboardController.getSystemMetricsByPeriod);
 
+// Obtener métricas de un evento específico (organizadores y admins)
+router.get('/events/:eventId/metrics', authenticateToken, requireOrganizadorOrAdmin, DashboardController.getEventMetrics);
+
 module.exports = router;
