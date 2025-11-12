@@ -68,7 +68,7 @@ class Event {
         titulo, descripcion, fecha_aplicacion_prioritaria, fecha_aplicacion_general,
         duracion, correo_contacto, informacion_adicional, skills, tags,
         modalidad, lugar, fecha_hora, imagen_url, requiere_postulacion, allow_custom_form, postulation_schema, postulation_schema_version, created_by
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::skill_evento[], $9::tag_evento[], $10, $11, $12, $13, $14, $15, $16, $17)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::skill_evento[], $9::tag_evento[], $10, $11, $12, $13, $14, $15, $16, $17, $18)
       RETURNING *
     `;
 
