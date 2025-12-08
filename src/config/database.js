@@ -3,10 +3,10 @@ require('dotenv').config();
 
 const pool = new Pool({
   user: process.env.DB_USER || 'postgres',
-  host: process.env.DB_HOST || 'shuttle.proxy.rlwy.net',
+  host: process.env.DB_HOST || 'hopper.proxy.rlwy.net',
   database: process.env.DB_NAME || 'railway',
   password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT || 5432,
+  port: process.env.DB_PORT || 51751,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
   max: 10,
   idleTimeoutMillis: 60000,
