@@ -8,9 +8,9 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD,
   port: process.env.DB_PORT || 5432,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 3000,
+  max: 10,
+  idleTimeoutMillis: 60000,
+  connectionTimeoutMillis: 10000,
 });
 
 // Función para probar la conexión
