@@ -1,5 +1,6 @@
 const Event = require('../models/Event');
 const EventPostulation = require('../models/EventPostulation');
+const Inscription = require('../models/Inscription');
 
 class EventPostulationController {
   static async getForm(req, res) {
@@ -221,8 +222,21 @@ class EventPostulationController {
           message: 'Solo un administrador, organizador o el creador del evento puede actualizar postulaciones'
         });
       }
-
+      
       const updated = await EventPostulation.updateStatus(postulationId, req.user.id, estado, comentarios);
+
+      if (estado === 'aprobado') {
+        try {
+          const existingInscription = await Inscription.isUserInscribed(updated.user_id, updated.event_id);
+          
+          if (!existingInscription) {
+            await Inscription.create(updated.user_id, updated.event_id);
+            console.log(`Usuario ${updated.user_id} inscrito automáticamente al evento ${updated.event_id} tras aprobación.`);
+          }
+        } catch (inscError) {
+          console.error('Error al inscribir usuario automáticamente:', inscError);
+        }
+      }
 
       res.json({
         success: true,

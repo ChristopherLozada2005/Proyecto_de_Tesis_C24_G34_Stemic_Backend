@@ -118,7 +118,8 @@ class Inscription {
           e.modalidad as evento_modalidad,
           e.lugar as evento_lugar,
           e.imagen_url as evento_imagen,
-          e.tags as evento_tags
+          e.tags as evento_tags,
+          (SELECT COUNT(*) > 0 FROM evaluations ev WHERE ev.evento_id = i.event_id AND ev.usuario_id = i.user_id) as ha_evaluado
         FROM inscriptions i
         INNER JOIN eventos e ON i.event_id = e.id
         WHERE i.user_id = $1 AND e.activo = true
@@ -146,6 +147,7 @@ class Inscription {
           fecha_inscripcion: row.fecha_inscripcion,
           created_at: row.created_at,
           updated_at: row.updated_at,
+          ha_evaluado: row.ha_evaluado,
           evento: {
             id: row.event_id,
             titulo: row.evento_titulo,

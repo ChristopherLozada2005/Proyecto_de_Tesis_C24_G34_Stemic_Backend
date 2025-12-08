@@ -17,16 +17,12 @@ class RecommendationController {
       
       const userResult = await query(userInterestsQuery, [userId]);
       
-      if (userResult.rows.length === 0) {
-        return res.status(404).json({
-          success: false,
-          message: 'Perfil de usuario no encontrado'
-        });
+      let userInterests = [];
+      if (userResult.rows.length > 0) {
+        userInterests = userResult.rows[0].interests || [];
       }
 
-      const userInterests = userResult.rows[0].interests || [];
-
-      // Si el usuario no tiene intereses, devolver eventos recientes
+      // Si el usuario no tiene intereses, devolver eventos recientes (Usando Sequelize)
       if (userInterests.length === 0) {
         const recentEvents = await Event.findAll({
           limit: parseInt(limit),
@@ -35,6 +31,7 @@ class RecommendationController {
           order: 'ASC'
         });
 
+        // Sequelize ya devuelve los tags como array gracias al modelo
         return res.json({
           success: true,
           data: {
@@ -45,7 +42,7 @@ class RecommendationController {
         });
       }
 
-      // Obtener eventos recomendados basados en intereses
+      // Consulta SQL para recomendación por intereses
       const recommendationQuery = `
         SELECT 
           e.*,
@@ -71,7 +68,29 @@ class RecommendationController {
         parseInt(offset)
       ]);
 
-      // Obtener total de eventos recomendados para paginación
+      // --- CORRECCIÓN CLAVE ---
+      // Procesamos las filas crudas para asegurar que 'tags' sea un Array válido
+      const formattedEvents = result.rows.map(event => {
+        let tags = event.tags;
+        
+        // Si es null o undefined, lo convertimos a array vacío
+        if (!tags) {
+          tags = [];
+        } 
+        // Si por alguna razón la BD lo devuelve como string (ej: "{IA,TECH}"), lo parseamos
+        else if (typeof tags === 'string') {
+          // Elimina llaves {} y separa por comas
+          tags = tags.replace(/[{}]/g, '').split(',').map(t => t.trim()).filter(Boolean);
+        }
+        
+        return {
+          ...event,
+          tags: tags // Aseguramos que siempre va como array
+        };
+      });
+      // ------------------------
+
+      // Obtener total
       const totalQuery = `
         SELECT COUNT(*) as total
         FROM eventos e
@@ -86,7 +105,7 @@ class RecommendationController {
       res.json({
         success: true,
         data: {
-          events: result.rows,
+          events: formattedEvents, // Enviamos los eventos formateados
           total: total,
           recommendation_type: 'interest_based',
           user_interests: userInterests
@@ -102,13 +121,15 @@ class RecommendationController {
     }
   }
 
+  // ... (Resto de los métodos getEventsByInterest y getRecommendationStats se mantienen igual) ...
+  // Asegúrate de aplicar la misma lógica de "formattedEvents" en getEventsByInterest si notas el mismo error allí.
+
   // Obtener eventos por interés específico
   static async getEventsByInterest(req, res) {
     try {
       const { interest } = req.params;
       const { limit = 10, offset = 0 } = req.query;
 
-      // Validar que el interés sea válido
       const validInterests = ['ia', 'tech', 'networking'];
       if (!validInterests.includes(interest.toLowerCase())) {
         return res.status(400).json({
@@ -133,7 +154,16 @@ class RecommendationController {
         parseInt(offset)
       ]);
 
-      // Obtener total para paginación
+      // Aplicamos la misma corrección aquí por seguridad
+      const formattedEvents = result.rows.map(event => {
+        let tags = event.tags;
+        if (!tags) tags = [];
+        else if (typeof tags === 'string') {
+          tags = tags.replace(/[{}]/g, '').split(',').map(t => t.trim()).filter(Boolean);
+        }
+        return { ...event, tags };
+      });
+
       const totalQuery = `
         SELECT COUNT(*) as total
         FROM eventos e
@@ -148,7 +178,7 @@ class RecommendationController {
       res.json({
         success: true,
         data: {
-          events: result.rows,
+          events: formattedEvents,
           total: total,
           interest: interest.toLowerCase()
         }
@@ -163,30 +193,19 @@ class RecommendationController {
     }
   }
 
-  // Obtener estadísticas de recomendaciones para un usuario
+  // ... (getRecommendationStats sigue igual) ...
   static async getRecommendationStats(req, res) {
-    try {
+     // ... (Mismo código de tu versión anterior corregida)
+     try {
       const userId = req.user.id;
-
-      // Obtener intereses del usuario
-      const userInterestsQuery = `
-        SELECT interests 
-        FROM profiles 
-        WHERE user_id = $1
-      `;
-      
+      const userInterestsQuery = `SELECT interests FROM profiles WHERE user_id = $1`;
       const userResult = await query(userInterestsQuery, [userId]);
       
-      if (userResult.rows.length === 0) {
-        return res.status(404).json({
-          success: false,
-          message: 'Perfil de usuario no encontrado'
-        });
+      let userInterests = [];
+      if (userResult.rows.length > 0) {
+        userInterests = userResult.rows[0].interests || [];
       }
 
-      const userInterests = userResult.rows[0].interests || [];
-
-      // Estadísticas por interés
       const statsQuery = `
         SELECT 
           unnest(e.tags) as tag,
@@ -197,10 +216,8 @@ class RecommendationController {
         GROUP BY unnest(e.tags)
         ORDER BY total_eventos DESC
       `;
-
       const statsResult = await query(statsQuery);
 
-      // Calcular recomendaciones disponibles
       const recommendationsQuery = `
         SELECT COUNT(*) as total_recomendaciones
         FROM eventos e
@@ -208,7 +225,6 @@ class RecommendationController {
           AND e.fecha_hora > NOW()
           AND e.tags && $1
       `;
-
       const recommendationsResult = await query(recommendationsQuery, [userInterests]);
 
       res.json({
@@ -223,10 +239,7 @@ class RecommendationController {
 
     } catch (error) {
       console.error('Error al obtener estadísticas de recomendaciones:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Error interno del servidor'
-      });
+      res.status(500).json({ success: false, message: 'Error interno del servidor' });
     }
   }
 }
